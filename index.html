@@ -3,38 +3,123 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Кахут? Классный! - Подготовка к ОГЭ</title>
+    <title>ОГЭ Кахут - Главная</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
+<body class="home-page">
     <div class="container">
-        <h1>🎓 Кахут? Классный!</h1>
-        <p class="subtitle">Подготовка к ОГЭ и устному собеседованию по русскому языку</p>
-        <p class="instruction">Выберите, как вы будете заходить:</p>
-        
-        <div class="choice-buttons">
-            <button id="teacherBtn" class="btn-teacher">👨‍🏫 Я учитель (Смарт-доска)</button>
-            <button id="studentBtn" class="btn-student">🧑‍🎓 Я ученик (Телефон)</button>
+        <header class="home-header">
+            <div class="logo">🎓</div>
+            <h1>ОГЭ КАХУТ</h1>
+            <p class="subtitle">Интерактивная подготовка к ОГЭ и устному собеседованию по русскому языку</p>
+        </header>
+
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-icon">📚</div>
+                <h4>30+ заданий</h4>
+                <p>ОГЭ и устное собеседование</p>
+            </div>
+            <div class="stat-item">
+                <div class="stat-icon">⚡</div>
+                <h4>Реальное время</h4>
+                <p>Мгновенная обратная связь</p>
+            </div>
+            <div class="stat-item">
+                <div class="stat-icon">📱</div>
+                <h4>На любом устройстве</h4>
+                <p>Телефон, планшет, компьютер</p>
+            </div>
+            <div class="stat-item">
+                <div class="stat-icon">👥</div>
+                <h4>Для всего класса</h4>
+                <p>Неограниченное число игроков</p>
+            </div>
         </div>
 
-        <div class="info">
-            <h3>Как это работает:</h3>
-            <ul>
-                <li><strong>Учитель</strong> запускает вопросы на смарт-доске.</li>
-                <li><strong>Ученики</strong> заходят с телефонов и видят варианты ответов.</li>
-                <li>После каждого вопроса показывается правильный ответ и статистика.</li>
-                <li>30 готовых заданий по ОГЭ и устному собеседованию!</li>
-            </ul>
+        <div class="role-selection">
+            <div class="role-card teacher-card">
+                <div class="role-icon">👨‍🏫</div>
+                <h3>УЧИТЕЛЬ</h3>
+                <p>Запускаете игру на смарт-доске, управляете вопросами, видите статистику ответов класса в реальном времени.</p>
+                <a href="teacher.html" class="btn btn-primary">
+                    <i class="fas fa-chalkboard"></i> ОТКРЫТЬ ДОСКУ
+                </a>
+            </div>
+
+            <div class="role-card student-card">
+                <div class="role-icon">🧑‍🎓</div>
+                <h3>УЧЕНИК</h3>
+                <p>Подключаетесь с телефона, отвечаете на вопросы, видите свой прогресс и соревнуетесь с одноклассниками.</p>
+                <a href="student.html" class="btn btn-success">
+                    <i class="fas fa-mobile-alt"></i> ПОДКЛЮЧИТЬСЯ
+                </a>
+            </div>
         </div>
+
+        <div class="card mt-xl">
+            <h3><i class="fas fa-info-circle"></i> Как это работает</h3>
+            <div class="steps">
+                <div class="step">
+                    <span class="step-number">1</span>
+                    <p><strong>Учитель</strong> открывает панель управления на смарт-доске</p>
+                </div>
+                <div class="step">
+                    <span class="step-number">2</span>
+                    <p><strong>Ученики</strong> подключаются с телефонов по коду игры</p>
+                </div>
+                <div class="step">
+                    <span class="step-number">3</span>
+                    <p><strong>Вопрос появляется</strong> одновременно на доске и телефонах</p>
+                </div>
+                <div class="step">
+                    <span class="step-number">4</span>
+                    <p><strong>Статистика</strong> показывается после каждого вопроса</p>
+                </div>
+            </div>
+        </div>
+
+        <footer class="home-footer">
+            <p>Система подготовки к ОГЭ по русскому языку | Работает на Firebase</p>
+            <div class="tech-stack">
+                <span class="tech-item"><i class="fas fa-fire"></i> Firebase</span>
+                <span class="tech-item"><i class="fab fa-html5"></i> HTML5</span>
+                <span class="tech-item"><i class="fab fa-js"></i> JavaScript</span>
+                <span class="tech-item"><i class="fas fa-cloud"></i> GitHub Pages</span>
+            </div>
+            <p class="mt-md">© 2024 ОГЭ Кахут. Для учебных целей.</p>
+        </footer>
     </div>
 
-    <script src="app.js"></script>
-    <script>
-        document.getElementById('teacherBtn').onclick = () => window.location.href = 'teacher.html';
-        document.getElementById('studentBtn').onclick = () => window.location.href = 'student.html';
-    </script>
+    <style>
+        /* Дополнительные стили для главной страницы */
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .step {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #4361ee;
+        }
+        
+        .step-number {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            background: #4361ee;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+    </style>
 </body>
 </html>
