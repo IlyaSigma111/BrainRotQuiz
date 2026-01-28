@@ -1,4 +1,4 @@
-// Учительский скрипт - РАБОЧАЯ ВЕРСИЯ
+// Учительский скрипт - ИСПРАВЛЕННАЯ ВЕРСИЯ
 document.addEventListener('DOMContentLoaded', function() {
     // Элементы формы
     const createGameBtn = document.getElementById('create-game-btn');
@@ -93,6 +93,9 @@ document.addEventListener('DOMContentLoaded', function() {
         newGameBtn.addEventListener('click', handleNewGame);
         copyLinkBtn.addEventListener('click', handleCopyLink);
         
+        // Устанавливаем активной тему "Все темы"
+        document.querySelector('.topic-btn[data-topic="all"]').classList.add('active');
+        
         console.log('Инициализация завершена');
     }
     
@@ -109,6 +112,12 @@ document.addEventListener('DOMContentLoaded', function() {
             selectedTopic,
             questionCount
         });
+        
+        // Проверяем Firebase
+        if (!database) {
+            alert('Firebase не подключен. Проверьте интернет соединение.');
+            return;
+        }
         
         // Генерируем код игры
         currentGameCode = generateGameCode();
@@ -130,11 +139,21 @@ document.addEventListener('DOMContentLoaded', function() {
             studentUrl = window.location.origin;
         }
         
+        // Если studentUrl содержит teacher, заменяем на student
+        if (studentUrl.includes('teacher')) {
+            studentUrl = studentUrl.replace('teacher', 'student');
+        }
+        
+        // Если студентский сайт на другом домене
+        if (!studentUrl.includes('student')) {
+            studentUrl = studentUrl + '/student';
+        }
+        
         const fullUrl = `${studentUrl}?game=${currentGameCode}`;
         gameLinkBox.textContent = fullUrl;
         
         // Генерируем QR-код
-        generateQRCode(fullUrl, 'qrcode');
+        generateQRCodeCanvas(fullUrl);
         
         // Показываем карточки управления
         gameInfoCard.style.display = 'block';
@@ -155,11 +174,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function createGameInFirebase(gameName, questionCount) {
-        if (!database) {
-            console.error('Firebase не инициализирован');
-            return;
-        }
-        
         console.log('Создание игры в Firebase...');
         
         // Фильтруем вопросы по теме
@@ -219,6 +233,47 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Ошибка создания игры:', error);
             alert('Ошибка создания игры: ' + error.message);
         });
+    }
+    
+    // === ГЕНЕРАЦИЯ QR-КОДА ===
+    function generateQRCodeCanvas(text) {
+        const canvas = document.getElementById('qrcode');
+        if (!canvas) {
+            console.error('Canvas для QR-кода не найден');
+            return;
+        }
+        
+        const ctx = canvas.getContext('2d');
+        const size = 180;
+        canvas.width = size;
+        canvas.height = size;
+        
+        // Очищаем canvas
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, size, size);
+        
+        // Рисуем рамку
+        ctx.strokeStyle = '#4a6ee0';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(2, 2, size - 4, size - 4);
+        
+        // Рисуем заголовок
+        ctx.fillStyle = '#333';
+        ctx.font = 'bold 14px Inter';
+        ctx.textAlign = 'center';
+        ctx.fillText('BRAIN QUIZ', size / 2, 30);
+        
+        // Рисуем код игры крупно
+        ctx.fillStyle = '#4a6ee0';
+        ctx.font = 'bold 32px Inter';
+        ctx.fillText(currentGameCode, size / 2, size / 2);
+        
+        // Рисуем подпись
+        ctx.fillStyle = '#666';
+        ctx.font = '10px Inter';
+        ctx.fillText('Отсканируйте или введите код', size / 2, size - 15);
+        
+        console.log('QR-код сгенерирован для кода:', currentGameCode);
     }
     
     // === ОБНОВЛЕНИЕ ИГРОКОВ ===
