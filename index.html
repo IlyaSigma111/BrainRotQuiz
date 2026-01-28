@@ -3,149 +3,201 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Brain Quiz - Учительский режим</title>
+    <title>Brain Quiz - Учитель</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 </head>
 <body>
     <div class="container">
         <!-- Шапка -->
         <header class="header">
             <div class="logo">
-                <div class="logo-icon">
-                    <i class="fas fa-chalkboard-teacher"></i>
-                </div>
-                <div class="logo-text">
+                <i class="fas fa-chalkboard-teacher"></i>
+                <div>
                     <h1>Brain Quiz</h1>
                     <p class="subtitle">Учительский режим</p>
                 </div>
             </div>
-            
-            <div class="game-stats">
-                <div class="stat">
+            <div class="game-info">
+                <div class="info-item">
                     <i class="fas fa-users"></i>
                     <span>Игроков: <strong id="player-count">0</strong></span>
                 </div>
-                <div class="stat">
+                <div class="info-item">
                     <i class="fas fa-gamepad"></i>
-                    <span>Статус: <strong id="game-status">Ожидание</strong></span>
+                    <span>Статус: <strong id="game-status">Неактивно</strong></span>
                 </div>
             </div>
         </header>
 
         <main class="main-content">
-            <!-- Левая панель - управление -->
-            <div class="control-panel">
-                <div class="panel-card">
-                    <h2><i class="fas fa-cogs"></i> Управление игрой</h2>
+            <!-- Левая панель -->
+            <div class="left-panel">
+                <!-- Создание игры -->
+                <div class="card">
+                    <h2><i class="fas fa-plus-circle"></i> Создать игру</h2>
                     
-                    <div class="game-info">
-                        <div class="info-item">
-                            <label>Код игры:</label>
-                            <div class="code-display" id="game-code-display">----</div>
+                    <div class="form-group">
+                        <label for="game-name">Название игры:</label>
+                        <input type="text" id="game-name" placeholder="Например: 9А класс" value="Классная игра">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Тема вопросов:</label>
+                        <div class="topic-buttons">
+                            <button class="topic-btn active" data-topic="all">
+                                <i class="fas fa-random"></i> Все темы
+                            </button>
+                            <button class="topic-btn" data-topic="oral">
+                                <i class="fas fa-microphone"></i> Устное
+                            </button>
+                            <button class="topic-btn" data-topic="oge">
+                                <i class="fas fa-file-alt"></i> ОГЭ
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Вопросов: <span id="question-count-display">10</span></label>
+                        <input type="range" id="question-count" min="5" max="20" value="10" class="slider">
+                    </div>
+                    
+                    <button class="btn btn-primary" id="create-game-btn">
+                        <i class="fas fa-rocket"></i> Создать игру
+                    </button>
+                </div>
+
+                <!-- Информация об игре -->
+                <div class="card" id="game-info-card" style="display: none;">
+                    <h2><i class="fas fa-info-circle"></i> Информация</h2>
+                    
+                    <div class="info-box">
+                        <div class="info-row">
+                            <span class="label">Код игры:</span>
+                            <span class="value" id="game-code-display">----</span>
                         </div>
                         
-                        <div class="info-item">
-                            <label>Ссылка для учеников:</label>
-                            <div class="link-display" id="game-link">...</div>
-                            <button class="btn btn-small" id="copy-link">
+                        <div class="info-row">
+                            <span class="label">Ссылка для учеников:</span>
+                            <div class="link-box" id="game-link-box">...</div>
+                            <button class="btn btn-small" id="copy-link-btn">
                                 <i class="fas fa-copy"></i> Копировать
                             </button>
                         </div>
                         
-                        <div class="info-item">
-                            <label>QR-код:</label>
-                            <div class="qr-container" id="qrcode"></div>
-                            <p class="qr-hint">Отсканируйте для быстрого входа</p>
+                        <div class="info-row">
+                            <span class="label">QR-код:</span>
+                            <div id="qrcode"></div>
+                            <p class="hint">Отсканируйте для входа</p>
                         </div>
                     </div>
+                </div>
+
+                <!-- Управление -->
+                <div class="card" id="control-card" style="display: none;">
+                    <h2><i class="fas fa-cogs"></i> Управление</h2>
                     
                     <div class="control-buttons">
-                        <button class="btn btn-primary" id="start-game">
+                        <button class="btn btn-success" id="start-game-btn">
                             <i class="fas fa-play"></i> Начать игру
                         </button>
-                        <button class="btn btn-secondary" id="next-question" disabled>
+                        <button class="btn btn-secondary" id="next-question-btn" disabled>
                             <i class="fas fa-forward"></i> Следующий вопрос
                         </button>
-                        <button class="btn btn-danger" id="end-game">
+                        <button class="btn btn-danger" id="end-game-btn">
                             <i class="fas fa-stop"></i> Завершить
                         </button>
                     </div>
                 </div>
-                
-                <!-- Список игроков -->
-                <div class="panel-card">
-                    <h2><i class="fas fa-users"></i> Подключенные игроки</h2>
+
+                <!-- Игроки -->
+                <div class="card" id="players-card" style="display: none;">
+                    <h2><i class="fas fa-users"></i> Игроки (<span id="players-count">0</span>)</h2>
                     <div class="players-list" id="players-list">
-                        <div class="empty-state">
-                            <i class="fas fa-user-plus"></i>
-                            <p>Игроки появятся здесь</p>
-                        </div>
+                        <div class="empty">Нет подключенных игроков</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Центральная часть - отображение игры -->
-            <div class="game-display">
+            <!-- Правая часть - отображение игры -->
+            <div class="right-panel">
+                <!-- Экран приветствия -->
+                <div class="screen active" id="welcome-screen">
+                    <div class="welcome-content">
+                        <div class="welcome-icon">
+                            <i class="fas fa-chalkboard-teacher"></i>
+                        </div>
+                        <h2>Добро пожаловать в Brain Quiz!</h2>
+                        <p>Создайте игру, чтобы начать</p>
+                        <ol class="instructions">
+                            <li>Заполните форму слева</li>
+                            <li>Нажмите "Создать игру"</li>
+                            <li>Покажите ученикам код или QR</li>
+                            <li>Начните игру, когда все подключатся</li>
+                        </ol>
+                    </div>
+                </div>
+
                 <!-- Экран ожидания -->
-                <div class="display-screen active" id="waiting-screen">
+                <div class="screen" id="waiting-screen">
                     <div class="waiting-content">
                         <div class="waiting-icon">
-                            <i class="fas fa-users"></i>
+                            <i class="fas fa-hourglass-half"></i>
                         </div>
                         <h2>Ожидание игроков</h2>
-                        <p>Попросите учеников подключиться к игре</p>
-                        <p class="instruction">1. Откройте сайт на телефоне<br>2. Введите код игры или отсканируйте QR</p>
+                        <p>Попросите учеников подключиться</p>
+                        <div class="player-count-big">
+                            <i class="fas fa-users"></i>
+                            <span><strong id="big-player-count">0</strong> игроков</span>
+                        </div>
                     </div>
                 </div>
-                
+
                 <!-- Экран вопроса -->
-                <div class="display-screen" id="question-screen">
-                    <div class="question-content">
-                        <div class="question-header">
-                            <div class="question-meta">
-                                <span class="category" id="question-category">Устное собеседование</span>
-                                <span class="timer" id="display-timer">30</span>
-                            </div>
-                            <div class="question-number">
-                                Вопрос <span id="current-question">1</span> из <span id="total-questions">10</span>
-                            </div>
+                <div class="screen" id="question-screen">
+                    <div class="question-header">
+                        <div class="question-meta">
+                            <span class="category" id="question-category">Устное собеседование</span>
+                            <span class="timer" id="question-timer">30</span>
                         </div>
-                        
-                        <h2 class="question-text" id="display-question">
-                            Какой стиль используется в научных статьях и учебниках?
-                        </h2>
-                        
-                        <div class="options-grid" id="display-options">
-                            <!-- Варианты появятся здесь -->
+                        <div class="question-number">
+                            Вопрос <span id="current-question">1</span> из <span id="total-questions">10</span>
                         </div>
                     </div>
+                    
+                    <div class="question-text" id="question-text">
+                        Какой стиль используется в научных статьях и учебниках?
+                    </div>
+                    
+                    <div class="options-grid" id="options-grid">
+                        <!-- Варианты появятся здесь -->
+                    </div>
                 </div>
-                
+
                 <!-- Экран результатов -->
-                <div class="display-screen" id="results-screen">
-                    <div class="results-content">
-                        <h2><i class="fas fa-chart-bar"></i> Результаты</h2>
-                        
-                        <div class="stats-grid" id="answer-stats">
-                            <!-- Статистика по ответам -->
-                        </div>
-                        
-                        <div class="mini-leaderboard">
-                            <h3>Топ игроков:</h3>
-                            <div id="mini-leaderboard-content">
-                                <!-- Мини-лидерборд -->
-                            </div>
+                <div class="screen" id="results-screen">
+                    <div class="results-header">
+                        <h2><i class="fas fa-chart-bar"></i> Результаты ответа</h2>
+                    </div>
+                    
+                    <div class="stats-container" id="stats-container">
+                        <!-- Статистика появится здесь -->
+                    </div>
+                    
+                    <div class="quick-leaderboard">
+                        <h3>Текущие лидеры:</h3>
+                        <div id="quick-leaderboard">
+                            <!-- Лидерборд появится здесь -->
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Финальный экран -->
-                <div class="display-screen" id="final-screen">
+                <div class="screen" id="final-screen">
                     <div class="final-content">
                         <div class="trophy">
                             <i class="fas fa-trophy"></i>
@@ -156,61 +208,13 @@
                             <!-- Финальный лидерборд -->
                         </div>
                         
-                        <button class="btn btn-primary" id="new-game">
+                        <button class="btn btn-primary" id="new-game-btn">
                             <i class="fas fa-plus"></i> Новая игра
                         </button>
                     </div>
                 </div>
             </div>
         </main>
-
-        <footer class="footer">
-            <p>Brain Quiz - Учительский режим | Использует Firebase Realtime Database</p>
-        </footer>
-    </div>
-
-    <!-- Модальное окно создания игры -->
-    <div class="modal active" id="create-game-modal">
-        <div class="modal-content">
-            <h2><i class="fas fa-gamepad"></i> Создать новую игру</h2>
-            
-            <div class="form-group">
-                <label for="game-name">Название игры:</label>
-                <input type="text" id="game-name" placeholder="Например: 9А класс" value="Классная игра">
-            </div>
-            
-            <div class="form-group">
-                <label>Выберите тему:</label>
-                <div class="topic-buttons">
-                    <button class="topic-btn active" data-topic="all">
-                        <i class="fas fa-random"></i> Все темы
-                    </button>
-                    <button class="topic-btn" data-topic="oral">
-                        <i class="fas fa-microphone"></i> Устное собеседование
-                    </button>
-                    <button class="topic-btn" data-topic="oge">
-                        <i class="fas fa-file-alt"></i> ОГЭ
-                    </button>
-                </div>
-            </div>
-            
-            <div class="form-group">
-                <label>Количество вопросов:</label>
-                <div class="range-slider">
-                    <input type="range" id="question-count" min="5" max="20" value="10">
-                    <span id="count-value">10</span>
-                </div>
-            </div>
-            
-            <div class="modal-actions">
-                <button class="btn btn-primary btn-large" id="create-game">
-                    <i class="fas fa-rocket"></i> Создать игру
-                </button>
-                <button class="btn btn-secondary" id="quick-start">
-                    <i class="fas fa-bolt"></i> Быстрый старт
-                </button>
-            </div>
-        </div>
     </div>
 
     <!-- Скрипты -->
