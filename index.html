@@ -7,124 +7,16 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 </head>
-<body class="role-page">
-    <div class="container">
-        <header class="main-header">
-            <div class="logo">
-                <i class="fas fa-brain"></i>
-                <h1>Brain Quiz</h1>
-                <p class="tagline">Интерактивный тренажер для класса</p>
-            </div>
-        </header>
-
-        <main class="main-content">
-            <div class="role-selector">
-                <div class="role-card teacher-card">
-                    <div class="role-icon">
-                        <i class="fas fa-chalkboard-teacher"></i>
-                    </div>
-                    <div class="role-info">
-                        <h2>Режим учителя</h2>
-                        <p class="role-desc">Для смарт-доски или компьютера</p>
-                        <ul class="role-features">
-                            <li><i class="fas fa-check"></i> Создание игр</li>
-                            <li><i class="fas fa-check"></i> Управление вопросами</li>
-                            <li><i class="fas fa-check"></i> Показ статистики</li>
-                        </ul>
-                    </div>
-                    <button class="role-btn" onclick="selectRole('teacher')">
-                        <i class="fas fa-play"></i> Запустить как учитель
-                    </button>
-                </div>
-
-                <div class="role-card student-card">
-                    <div class="role-icon">
-                        <i class="fas fa-mobile-alt"></i>
-                    </div>
-                    <div class="role-info">
-                        <h2>Режим ученика</h2>
-                        <p class="role-desc">Для телефонов и планшетов</p>
-                        <ul class="role-features">
-                            <li><i class="fas fa-check"></i> Цветные кнопки ответов</li>
-                            <li><i class="fas fa-check"></i> Подсчет очков</li>
-                            <li><i class="fas fa-check"></i> Рейтинг игроков</li>
-                        </ul>
-                    </div>
-                    <button class="role-btn" onclick="selectRole('student')">
-                        <i class="fas fa-play"></i> Подключиться как ученик
-                    </button>
-                </div>
-            </div>
-
-            <div class="instructions">
-                <h3><i class="fas fa-info-circle"></i> Как работает:</h3>
-                <div class="steps">
-                    <div class="step">
-                        <div class="step-num">1</div>
-                        <p><strong>Учитель</strong> запускает игру на доске</p>
-                    </div>
-                    <div class="step">
-                        <div class="step-num">2</div>
-                        <p><strong>Ученики</strong> заходят на сайт с телефонов</p>
-                    </div>
-                    <div class="step">
-                        <div class="step-num">3</div>
-                        <p><strong>На доске</strong> показывается вопрос</p>
-                    </div>
-                    <div class="step">
-                        <div class="step-num">4</div>
-                        <p><strong>На телефонах</strong> — кнопки ответов</p>
-                    </div>
-                </div>
-            </div>
-        </main>
-
-        <footer class="main-footer">
-            <p><i class="fas fa-bolt"></i> Все в одной комнате • Автоматический запуск • Не нужны коды</p>
-        </footer>
+<body>
+    <div id="app">
+        <!-- Интерфейс загрузится через JavaScript -->
     </div>
 
-    <script>
-        function selectRole(role) {
-            localStorage.setItem('userRole', role);
-            if (role === 'teacher') {
-                document.body.innerHTML = `
-                    <div class="loading-screen">
-                        <i class="fas fa-chalkboard-teacher"></i>
-                        <h2>Загрузка режима учителя...</h2>
-                    </div>
-                `;
-                setTimeout(() => loadTeacherMode(), 500);
-            } else {
-                document.body.innerHTML = `
-                    <div class="loading-screen">
-                        <i class="fas fa-mobile-alt"></i>
-                        <h2>Загрузка режима ученика...</h2>
-                    </div>
-                `;
-                setTimeout(() => loadStudentMode(), 500);
-            }
-        }
-
-        function loadTeacherMode() {
-            const html = `
-                <div id="teacher-app"></div>
-                <script src="firebase-config.js"></script>
-                <script src="quiz-data.js"></script>
-                <script src="app.js"></script>
-            `;
-            document.body.innerHTML = html;
-        }
-
-        function loadStudentMode() {
-            const html = `
-                <div id="student-app"></div>
-                <script src="firebase-config.js"></script>
-                <script src="app.js"></script>
-            `;
-            document.body.innerHTML = html;
-        }
-    </script>
+    <script src="firebase-config.js"></script>
+    <script src="quiz-data.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
