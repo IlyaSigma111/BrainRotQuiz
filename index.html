@@ -9,11 +9,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 </head>
 <body>
     <div class="container">
-        <!-- Шапка -->
         <header class="header">
             <div class="logo">
                 <i class="fas fa-chalkboard-teacher"></i>
@@ -35,7 +33,7 @@
         </header>
 
         <main class="main-content">
-            <!-- Левая панель -->
+            <!-- Левая панель управления -->
             <div class="left-panel">
                 <!-- Создание игры -->
                 <div class="card">
@@ -43,26 +41,29 @@
                     
                     <div class="form-group">
                         <label for="game-name">Название игры:</label>
-                        <input type="text" id="game-name" placeholder="Например: 9А класс" value="Классная игра">
+                        <input type="text" id="game-name" value="Классная игра" placeholder="Например: 9А класс">
                     </div>
                     
                     <div class="form-group">
                         <label>Тема вопросов:</label>
                         <div class="topic-buttons">
-                            <button class="topic-btn active" data-topic="all">
-                                <i class="fas fa-random"></i> Все темы
+                            <button type="button" class="topic-btn active" data-topic="all">
+                                <i class="fas fa-random"></i>
+                                <span>Все темы</span>
                             </button>
-                            <button class="topic-btn" data-topic="oral">
-                                <i class="fas fa-microphone"></i> Устное
+                            <button type="button" class="topic-btn" data-topic="oral">
+                                <i class="fas fa-microphone"></i>
+                                <span>Устное</span>
                             </button>
-                            <button class="topic-btn" data-topic="oge">
-                                <i class="fas fa-file-alt"></i> ОГЭ
+                            <button type="button" class="topic-btn" data-topic="oge">
+                                <i class="fas fa-file-alt"></i>
+                                <span>ОГЭ</span>
                             </button>
                         </div>
                     </div>
                     
                     <div class="form-group">
-                        <label>Вопросов: <span id="question-count-display">10</span></label>
+                        <label>Количество вопросов: <span id="question-count-display">10</span></label>
                         <input type="range" id="question-count" min="5" max="20" value="10" class="slider">
                     </div>
                     
@@ -73,7 +74,7 @@
 
                 <!-- Информация об игре -->
                 <div class="card" id="game-info-card" style="display: none;">
-                    <h2><i class="fas fa-info-circle"></i> Информация</h2>
+                    <h2><i class="fas fa-info-circle"></i> Информация об игре</h2>
                     
                     <div class="info-box">
                         <div class="info-row">
@@ -91,13 +92,15 @@
                         
                         <div class="info-row">
                             <span class="label">QR-код:</span>
-                            <div id="qrcode"></div>
+                            <div id="qrcode-container">
+                                <canvas id="qrcode"></canvas>
+                            </div>
                             <p class="hint">Отсканируйте для входа</p>
                         </div>
                     </div>
                 </div>
 
-                <!-- Управление -->
+                <!-- Управление игрой -->
                 <div class="card" id="control-card" style="display: none;">
                     <h2><i class="fas fa-cogs"></i> Управление</h2>
                     
@@ -106,7 +109,7 @@
                             <i class="fas fa-play"></i> Начать игру
                         </button>
                         <button class="btn btn-secondary" id="next-question-btn" disabled>
-                            <i class="fas fa-forward"></i> Следующий вопрос
+                            <i class="fas fa-forward"></i> Следующий
                         </button>
                         <button class="btn btn-danger" id="end-game-btn">
                             <i class="fas fa-stop"></i> Завершить
@@ -114,16 +117,16 @@
                     </div>
                 </div>
 
-                <!-- Игроки -->
+                <!-- Список игроков -->
                 <div class="card" id="players-card" style="display: none;">
                     <h2><i class="fas fa-users"></i> Игроки (<span id="players-count">0</span>)</h2>
                     <div class="players-list" id="players-list">
-                        <div class="empty">Нет подключенных игроков</div>
+                        <div class="empty">Игроки подключатся после создания игры</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Правая часть - отображение игры -->
+            <!-- Правая панель - отображение -->
             <div class="right-panel">
                 <!-- Экран приветствия -->
                 <div class="screen active" id="welcome-screen">
@@ -132,27 +135,53 @@
                             <i class="fas fa-chalkboard-teacher"></i>
                         </div>
                         <h2>Добро пожаловать в Brain Quiz!</h2>
-                        <p>Создайте игру, чтобы начать</p>
-                        <ol class="instructions">
-                            <li>Заполните форму слева</li>
-                            <li>Нажмите "Создать игру"</li>
-                            <li>Покажите ученикам код или QR</li>
-                            <li>Начните игру, когда все подключатся</li>
-                        </ol>
+                        <p>Интерактивный тренажер для подготовки к ОГЭ</p>
+                        <div class="steps">
+                            <div class="step">
+                                <div class="step-number">1</div>
+                                <h3>Создайте игру</h3>
+                                <p>Заполните форму слева и нажмите "Создать игру"</p>
+                            </div>
+                            <div class="step">
+                                <div class="step-number">2</div>
+                                <h3>Пригласите учеников</h3>
+                                <p>Покажите им код игры или QR-код</p>
+                            </div>
+                            <div class="step">
+                                <div class="step-number">3</div>
+                                <h3>Начните игру</h3>
+                                <p>Когда все подключатся, нажмите "Начать игру"</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Экран ожидания -->
+                <!-- Экран ожидания игроков -->
                 <div class="screen" id="waiting-screen">
                     <div class="waiting-content">
                         <div class="waiting-icon">
                             <i class="fas fa-hourglass-half"></i>
                         </div>
                         <h2>Ожидание игроков</h2>
-                        <p>Попросите учеников подключиться</p>
-                        <div class="player-count-big">
+                        <p>Попросите учеников подключиться к игре</p>
+                        
+                        <div class="game-code-big">
+                            <span class="label">Код игры:</span>
+                            <span class="code" id="big-game-code">----</span>
+                        </div>
+                        
+                        <div class="players-waiting">
                             <i class="fas fa-users"></i>
-                            <span><strong id="big-player-count">0</strong> игроков</span>
+                            <span><strong id="big-player-count">0</strong> игроков в комнате</span>
+                        </div>
+                        
+                        <div class="instructions">
+                            <h4>Как подключиться:</h4>
+                            <ul>
+                                <li>Откройте сайт на телефоне</li>
+                                <li>Введите код игры: <strong id="instruction-code">----</strong></li>
+                                <li>Или отсканируйте QR-код слева</li>
+                            </ul>
                         </div>
                     </div>
                 </div>
@@ -162,7 +191,10 @@
                     <div class="question-header">
                         <div class="question-meta">
                             <span class="category" id="question-category">Устное собеседование</span>
-                            <span class="timer" id="question-timer">30</span>
+                            <div class="timer-box">
+                                <i class="fas fa-clock"></i>
+                                <span id="question-timer">30</span>
+                            </div>
                         </div>
                         <div class="question-number">
                             Вопрос <span id="current-question">1</span> из <span id="total-questions">10</span>
@@ -170,11 +202,11 @@
                     </div>
                     
                     <div class="question-text" id="question-text">
-                        Какой стиль используется в научных статьях и учебниках?
+                        Вопрос появится здесь после начала игры
                     </div>
                     
                     <div class="options-grid" id="options-grid">
-                        <!-- Варианты появятся здесь -->
+                        <!-- Варианты ответов появятся здесь -->
                     </div>
                 </div>
 
@@ -189,7 +221,7 @@
                     </div>
                     
                     <div class="quick-leaderboard">
-                        <h3>Текущие лидеры:</h3>
+                        <h3><i class="fas fa-trophy"></i> Текущие лидеры</h3>
                         <div id="quick-leaderboard">
                             <!-- Лидерборд появится здесь -->
                         </div>
@@ -205,7 +237,7 @@
                         <h2>Игра завершена!</h2>
                         
                         <div class="final-leaderboard" id="final-leaderboard">
-                            <!-- Финальный лидерборд -->
+                            <!-- Финальный лидерборд появится здесь -->
                         </div>
                         
                         <button class="btn btn-primary" id="new-game-btn">
@@ -221,5 +253,29 @@
     <script src="firebase-config.js"></script>
     <script src="quiz-data.js"></script>
     <script src="teacher.js"></script>
+    
+    <!-- Простая библиотека для QR-кода -->
+    <script>
+        // Простая функция для генерации QR-кода
+        function generateQRCode(text, elementId) {
+            const canvas = document.getElementById(elementId);
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            const size = 200;
+            canvas.width = size;
+            canvas.height = size;
+            
+            // Очищаем canvas
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, size, size);
+            
+            // Простой QR-код (для демо)
+            ctx.fillStyle = 'black';
+            ctx.font = '10px monospace';
+            ctx.fillText('QR Code: ' + text.substring(0, 20), 10, 100);
+            ctx.fillText('(Используйте QR-сканер)', 10, 120);
+        }
+    </script>
 </body>
 </html>
