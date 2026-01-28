@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Панель учителя — ОГЭ-Кахут</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+</head>
+<body class="teacher-mode">
+    <div class="container">
+        <header>
+            <h1>📚 Панель учителя</h1>
+            <div id="gameCodeDisplay">Код игры: <span id="gameCode">—</span></div>
+            <button onclick="copyGameCode()" class="btn-small">📋 Копировать код</button>
+            <button onclick="window.location.href='index.html'" class="btn-small">🏠 На главную</button>
+        </header>
+
+        <div class="teacher-controls">
+            <button onclick="startNewGame()" class="btn-primary" id="startBtn">
+                🚀 Начать новую игру
+            </button>
+            
+            <div class="question-controls" style="display:none" id="questionControls">
+                <button onclick="showNextQuestion()" class="btn-success">
+                    ▶️ Следующий вопрос
+                </button>
+                <button onclick="showResults()" class="btn-info">
+                    📊 Показать результаты
+                </button>
+            </div>
+        </div>
+
+        <div class="question-board" id="questionBoard">
+            <p>Создайте игру и начните первый вопрос</p>
+        </div>
+
+        <div class="stats-board" id="statsBoard">
+            <h3>📈 Статистика ответов:</h3>
+            <div id="statsContent">Ждём ответов...</div>
+        </div>
+
+        <div class="players-list" id="playersList">
+            <h3>👥 Подключившиеся ученики:</h3>
+            <ul id="players"></ul>
+        </div>
+
+        <div class="question-list">
+            <h3>📋 Все вопросы (30):</h3>
+            <div class="questions-grid" id="questionsGrid">
+                <!-- Вопросы появятся здесь -->
+            </div>
+        </div>
+    </div>
+
+    <script src="firebase-config.js"></script>
+    <script src="teacher.js"></script>
+</body>
+</html>
