@@ -1,286 +1,319 @@
 // ============================================
-// teacher.js
-// Логика для панели учителя
+// teacher.js - ОБНОВЛЕННЫЙ
 // ============================================
 
-// Глобальные переменные
 let currentGameId = null;
 let currentQuestionIndex = 0;
-let gameInterval = null;
+let playersListener = null;
+let gameListener = null;
+let currentStats = null;
 
-// DOM элементы
+// Элементы DOM
 const startSection = document.getElementById('startSection');
 const gameControls = document.getElementById('gameControls');
 const gameCodeDisplay = document.getElementById('gameCode');
-const questionDisplay = document.getElementById('questionDisplay');
-const questionTimer = document.getElementById('questionTimer');
-const statsContent = document.getElementById('statsContent');
-const playersGrid = document.getElementById('playersGrid');
+const playersList = document.getElementById('playersList');
 const playerCount = document.getElementById('playerCount');
-const questionsScroll = document.getElementById('questionsScroll');
+const statsContent = document.getElementById('statsContent');
+const questionsList = document.getElementById('questionsList');
+const currentQ = document.getElementById('currentQ');
+const totalQ = document.getElementById('totalQ');
+
+// Режим презентации
+const mainInterface = document.getElementById('mainInterface');
+const presentationMode = document.getElementById('presentationMode');
+const presentationQNum = document.getElementById('presentationQNum');
+const presentationTimer = document.getElementById('presentationTimer');
+const presentationQuestion = document.getElementById('presentationQuestion');
 
 // ================ ОСНОВНЫЕ ФУНКЦИИ ================
 
-/**
- * Начать новую игру
- */
 function startNewGame() {
-    if (!window.firebaseAPI || !window.QUIZ_DATA) {
-        alert("Система не загружена. Обновите страницу.");
+    if (!window.firebaseAPI) {
+        alert("Firebase не загружен. Обновите страницу.");
         return;
     }
     
+    const gameId = "game_" + Math.floor(10000000 + Math.random() * 90000000);
+    currentGameId = gameId;
+    currentQuestionIndex = 0;
+    
+    // Обновить UI
+    startSection.style.display = 'none';
+    gameControls.style.display = 'block';
+    gameCodeDisplay.textContent = gameId.replace('game_', '');
+    currentQ.textContent = '0';
+    totalQ.textContent = QUIZ_DATA.questions.length;
+    
+    // Создать игру в Firebase
     const gameData = {
-        title: "ОГЭ по русскому языку - " + new Date().toLocaleDateString(),
+        id: gameId,
+        created: Date.now(),
+        status: "lobby",
         quiz: QUIZ_DATA,
-        teacher: "Учитель",
-        maxPlayers: 50,
-        timePerQuestion: 30
+        players: {},
+        currentQuestion: null,
+        answers: {}
     };
     
-    firebaseAPI.createGame(gameData).then(gameId => {
-        currentGameId = gameId;
-        currentQuestionIndex = 0;
-        
-        // Обновить интерфейс
-        startSection.style.display = 'none';
-        gameControls.style.display = 'block';
-        gameCodeDisplay.textContent = gameId.replace('game_', '');
-        
-        // Показать список вопросов
-        renderQuestionsList();
+    db.ref('games/' + gameId).set(gameData).then(() => {
+        console.log("✅ Игра создана:", gameId);
+        showNotification("Игра создана! Код: " + gameId.replace('game_', ''));
         
         // Начать слушать игроков
         listenToPlayers();
         
-        // Начать слушать ответы
-        listenToAnswers();
-        
-        // Запустить обновление статуса игры
-        updateGameStatus("lobby");
-        
-        console.log("🎮 Игра создана:", gameId);
-        showNotification("Игра создана! Код: " + gameId.replace('game_', ''));
+        // Обновить список вопросов
+        updateQuestionsList();
         
     }).catch(error => {
         console.error("Ошибка создания игры:", error);
-        alert("Ошибка создания игры: " + error.message);
+        alert("Ошибка: " + error.message);
     });
 }
 
-/**
- * Начать следующий вопрос
- */
 function startNextQuestion() {
-    if (!currentGameId || currentQuestionIndex >= QUIZ_DATA.questions.length) {
+    if (!currentGameId) return;
+    
+    const question = QUIZ_DATA.questions[currentQuestionIndex];
+    if (!question) {
         alert("Все вопросы пройдены!");
         return;
     }
     
-    const question = QUIZ_DATA.questions[currentQuestionIndex];
+    // Переключить в режим презентации
+    enterPresentationMode(question);
     
-    // Обновить статус игры
-    updateGameStatus("question_active", question.id);
-    
-    // Показать вопрос на доске
-    renderQuestion(question);
+    // Обновить в Firebase
+    db.ref('games/' + currentGameId).update({
+        status: "question_active",
+        currentQuestion: question.id,
+        questionStartTime: Date.now()
+    });
     
     // Запустить таймер
-    startQuestionTimer(question.time);
+    startPresentationTimer(question.time);
     
-    // Сбросить предыдущие ответы
-    db.ref(`games/${currentGameId}/answers/${question.id}`).remove();
-    
-    console.log("📝 Вопрос начат:", question.id);
-    showNotification("Вопрос " + (currentQuestionIndex + 1) + " запущен");
-    
+    // Обновить счетчик вопросов
     currentQuestionIndex++;
+    currentQ.textContent = currentQuestionIndex;
+    
+    console.log("▶️ Вопрос запущен:", question.id);
 }
 
-/**
- * Показать статистику
- */
-function showResults() {
-    if (!currentGameId || currentQuestionIndex === 0) {
+function enterPresentationMode(question) {
+    // Скрыть основной интерфейс
+    mainInterface.style.display = 'none';
+    presentationMode.style.display = 'flex';
+    
+    // Показать вопрос
+    presentationQNum.textContent = currentQuestionIndex + 1;
+    presentationQuestion.innerHTML = `
+        <h2>${question.text}</h2>
+        ${question.image ? `<img src="${question.image}" style="max-width: 400px; margin: 20px auto; display: block; border-radius: 10px;">` : ''}
+        <div style="text-align: center; margin-top: 30px; color: #00adb5; font-size: 18px;">
+            📱 Ответы принимаются на телефонах...
+        </div>
+    `;
+    
+    // Начать слушать ответы для статистики
+    listenToQuestionAnswers(question.id);
+}
+
+function exitPresentation() {
+    // Вернуться к основному интерфейсу
+    mainInterface.style.display = 'flex';
+    presentationMode.style.display = 'none';
+    
+    // Обновить статус игры
+    if (currentGameId) {
+        db.ref('games/' + currentGameId).update({
+            status: "lobby"
+        });
+    }
+}
+
+function showAnswer() {
+    const question = QUIZ_DATA.questions[currentQuestionIndex - 1];
+    if (!question) return;
+    
+    // Показать правильный ответ
+    presentationQuestion.innerHTML += `
+        <div style="margin-top: 40px; padding: 20px; background: rgba(0, 255, 136, 0.1); border-radius: 15px; border: 2px solid #00ff88;">
+            <h3 style="color: #00ff88; margin-top: 0;">✅ ПРАВИЛЬНЫЙ ОТВЕТ:</h3>
+            <div style="font-size: 24px; color: white; margin: 15px 0;">${question.options[question.correct]}</div>
+            <div style="color: #8f8f8f; font-style: italic;">${question.explanation}</div>
+        </div>
+    `;
+    
+    // Показать статистику
+    if (currentStats) {
+        showQuestionStats(currentStats, question);
+    }
+}
+
+function showStats() {
+    if (currentQuestionIndex === 0) {
         alert("Сначала запустите хотя бы один вопрос!");
         return;
     }
     
-    const prevQuestionId = QUIZ_DATA.questions[currentQuestionIndex - 1]?.id;
-    if (!prevQuestionId) return;
+    const question = QUIZ_DATA.questions[currentQuestionIndex - 1];
+    if (!question) return;
     
-    updateGameStatus("showing_results", prevQuestionId);
-    
-    // Получить статистику
-    firebaseAPI.getQuestionStats(currentGameId, prevQuestionId, (stats) => {
-        if (stats) {
-            renderStats(stats, prevQuestionId);
-        }
+    // Получить статистику из Firebase
+    db.ref(`games/${currentGameId}/answers/${question.id}`).once('value').then(snapshot => {
+        const answers = snapshot.val() || {};
+        const stats = calculateStats(answers, question);
+        showQuestionStats(stats, question);
     });
 }
 
-/**
- * Начать заново
- */
+function endQuestion() {
+    if (currentGameId) {
+        db.ref('games/' + currentGameId).update({
+            status: "lobby",
+            currentQuestion: null
+        });
+    }
+    
+    // Если в режиме презентации - выйти
+    if (presentationMode.style.display !== 'none') {
+        exitPresentation();
+    }
+}
+
 function resetGame() {
-    if (confirm("Вы уверены? Все данные текущей игры будут удалены.")) {
+    if (confirm("Удалить текущую игру и начать заново?")) {
         if (currentGameId) {
-            firebaseAPI.removeGame(currentGameId);
+            db.ref('games/' + currentGameId).remove();
         }
         
-        // Сбросить интерфейс
+        // Сбросить всё
         currentGameId = null;
         currentQuestionIndex = 0;
         startSection.style.display = 'block';
         gameControls.style.display = 'none';
         gameCodeDisplay.textContent = '----';
-        questionDisplay.innerHTML = `
-            <div class="question-placeholder">
-                <i class="fas fa-question-circle fa-4x"></i>
-                <h3>Вопрос появится здесь</h3>
-                <p>Начните игру, чтобы увидеть первый вопрос</p>
-            </div>
-        `;
-        statsContent.innerHTML = `
-            <div class="stats-placeholder">
-                <p>Здесь будет отображаться статистика ответов учеников</p>
-            </div>
-        `;
-        playersGrid.innerHTML = `
-            <div class="empty-players">
-                <i class="fas fa-user-friends fa-2x"></i>
-                <p>Ожидаем подключения учеников...</p>
-            </div>
-        `;
+        playersList.innerHTML = '<div class="empty-lobby"><div class="empty-icon">👤</div><p>Игроки появятся здесь после подключения</p></div>';
+        playerCount.textContent = '0';
+        statsContent.innerHTML = '<div class="empty-stats"><div class="stats-icon">📊</div><p>Статистика появится после ответов на вопросы</p></div>';
+        currentQ.textContent = '0';
         
-        clearInterval(gameInterval);
+        // Отписаться от слушателей
+        if (playersListener) playersListener();
+        if (gameListener) gameListener();
+        
         console.log("🔄 Игра сброшена");
     }
 }
 
 // ================ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ================
 
-/**
- * Обновить статус игры в Firebase
- */
-function updateGameStatus(status, questionId = null) {
+function listenToPlayers() {
     if (!currentGameId) return;
     
-    firebaseAPI.updateGameStatus(currentGameId, status, questionId);
-}
-
-/**
- * Показать вопрос на доске
- */
-function renderQuestion(question) {
-    const optionsHTML = question.options.map((option, index) => `
-        <div class="option-card ${index === question.correct ? 'correct' : ''}">
-            <div class="option-letter">${String.fromCharCode(65 + index)}</div>
-            <div class="option-text">${option}</div>
-        </div>
-    `).join('');
-    
-    questionDisplay.innerHTML = `
-        <div class="question-content">
-            <div class="question-meta">
-                <span class="question-type-badge">${getTypeLabel(question.type)}</span>
-                <span class="question-points">${question.points} баллов</span>
-            </div>
-            <h2 class="question-text">${question.text}</h2>
-            ${question.image ? `<img src="${question.image}" class="question-image" alt="Иллюстрация">` : ''}
-            <div class="options-grid-teacher">
-                ${optionsHTML}
-            </div>
-            <div class="question-explanation" id="questionExplanation" style="display: none;">
-                <h4><i class="fas fa-lightbulb"></i> Объяснение:</h4>
-                <p>${question.explanation}</p>
-            </div>
-        </div>
-    `;
-}
-
-/**
- * Запустить таймер вопроса
- */
-function startQuestionTimer(seconds) {
-    let timeLeft = seconds;
-    questionTimer.textContent = timeLeft;
-    questionTimer.style.color = '#10b981';
-    
-    const timer = setInterval(() => {
-        timeLeft--;
-        questionTimer.textContent = timeLeft;
+    playersListener = db.ref(`games/${currentGameId}/players`).on('value', snapshot => {
+        const players = snapshot.val() || {};
+        const playerArray = Object.entries(players).map(([name, data]) => ({
+            name,
+            ...data
+        }));
         
-        // Изменить цвет при малом времени
-        if (timeLeft <= 10) {
-            questionTimer.style.color = '#ef4444';
-            questionTimer.classList.add('pulse');
-        }
+        // Обновить счетчик
+        playerCount.textContent = playerArray.length;
         
-        if (timeLeft <= 0) {
-            clearInterval(timer);
-            questionTimer.classList.remove('pulse');
-            showQuestionResults();
-        }
-    }, 1000);
-}
-
-/**
- * Показать результаты вопроса
- */
-function showQuestionResults() {
-    const question = QUIZ_DATA.questions[currentQuestionIndex - 1];
-    if (!question) return;
-    
-    // Показать правильный ответ
-    document.querySelectorAll('.option-card').forEach((card, index) => {
-        if (index === question.correct) {
-            card.classList.add('highlight-correct');
-        } else {
-            card.classList.add('highlight-wrong');
-        }
+        // Обновить список
+        updatePlayersList(playerArray);
     });
-    
-    // Показать объяснение
-    const explanationEl = document.getElementById('questionExplanation');
-    if (explanationEl) {
-        explanationEl.style.display = 'block';
+}
+
+function updatePlayersList(players) {
+    if (players.length === 0) {
+        playersList.innerHTML = '<div class="empty-lobby"><div class="empty-icon">👤</div><p>Игроки появятся здесь после подключения</p></div>';
+        return;
     }
     
-    // Получить статистику
-    firebaseAPI.getQuestionStats(currentGameId, question.id, (stats) => {
-        renderStats(stats, question.id);
-    });
-    
-    // Обновить статус игры
-    updateGameStatus("showing_results", question.id);
+    playersList.innerHTML = players.map(player => `
+        <div class="player-card">
+            <div class="player-avatar">${player.name.charAt(0).toUpperCase()}</div>
+            <div class="player-name">${player.name}</div>
+            <div class="player-score">🎯 ${player.score || 0} очков</div>
+        </div>
+    `).join('');
 }
 
-/**
- * Отобразить статистику
- */
-function renderStats(stats, questionId) {
-    const question = QUIZ_DATA.questions.find(q => q.id == questionId);
-    if (!question) return;
+function listenToQuestionAnswers(questionId) {
+    if (!currentGameId) return;
     
+    db.ref(`games/${currentGameId}/answers/${questionId}`).on('value', snapshot => {
+        const answers = snapshot.val() || {};
+        const question = QUIZ_DATA.questions.find(q => q.id == questionId);
+        
+        if (question) {
+            currentStats = calculateStats(answers, question);
+            updateLiveStats(currentStats);
+        }
+    });
+}
+
+function calculateStats(answers, question) {
+    const stats = {
+        total: Object.keys(answers).length,
+        correct: 0,
+        byOption: question.options.map(() => 0)
+    };
+    
+    Object.values(answers).forEach(answer => {
+        const optionIndex = answer.answerIndex;
+        if (optionIndex >= 0 && optionIndex < question.options.length) {
+            stats.byOption[optionIndex]++;
+            if (optionIndex === question.correct) {
+                stats.correct++;
+            }
+        }
+    });
+    
+    return stats;
+}
+
+function updateLiveStats(stats) {
+    // Обновить в режиме презентации
+    if (presentationMode.style.display !== 'none') {
+        const statsElement = document.getElementById('liveStats');
+        if (!statsElement) {
+            presentationQuestion.innerHTML += `
+                <div id="liveStats" style="margin-top: 30px; padding: 15px; background: rgba(0, 173, 181, 0.1); border-radius: 10px;">
+                    <div style="color: #00ff88; font-weight: bold; margin-bottom: 10px;">📊 ОТВЕТОВ: ${stats.total}</div>
+                    <div style="color: white;">✅ Правильных: ${stats.correct}</div>
+                </div>
+            `;
+        } else {
+            statsElement.innerHTML = `
+                <div style="color: #00ff88; font-weight: bold; margin-bottom: 10px;">📊 ОТВЕТОВ: ${stats.total}</div>
+                <div style="color: white;">✅ Правильных: ${stats.correct}</div>
+            `;
+        }
+    }
+}
+
+function showQuestionStats(stats, question) {
     let statsHTML = `
-        <div class="stats-summary">
-            <div class="stat-item">
-                <div class="stat-value">${stats.total}</div>
-                <div class="stat-label">Всего ответов</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value">${stats.correct}</div>
-                <div class="stat-label">Правильных</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value">${stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0}%</div>
-                <div class="stat-label">Успешность</div>
-            </div>
+        <div class="stats-item">
+            <div class="stats-value">${stats.total}</div>
+            <div class="stats-label">Всего ответов</div>
+        </div>
+        <div class="stats-item">
+            <div class="stats-value">${stats.correct}</div>
+            <div class="stats-label">Правильных</div>
+        </div>
+        <div class="stats-item">
+            <div class="stats-value">${stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0}%</div>
+            <div class="stats-label">Успешность</div>
         </div>
         
-        <div class="stats-detailed">
-            <h4>Распределение по вариантам:</h4>
+        <div style="margin-top: 20px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px;">
+            <h4 style="color: #00adb5; margin-top: 0;">Распределение ответов:</h4>
     `;
     
     question.options.forEach((option, index) => {
@@ -289,15 +322,16 @@ function renderStats(stats, questionId) {
         const isCorrect = index === question.correct;
         
         statsHTML += `
-            <div class="option-stat ${isCorrect ? 'correct' : ''}">
-                <div class="option-stat-header">
-                    <span class="option-letter">${String.fromCharCode(65 + index)}</span>
-                    <span class="option-text">${option}</span>
-                    ${isCorrect ? '<span class="correct-badge">✓ Правильный</span>' : ''}
+            <div style="margin: 10px 0; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 5px; border-left: 4px solid ${isCorrect ? '#00ff88' : '#ff416c'}">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                    <span style="color: ${isCorrect ? '#00ff88' : 'white'}">
+                        <strong>${String.fromCharCode(65 + index)}.</strong> ${option}
+                        ${isCorrect ? ' ✅' : ''}
+                    </span>
+                    <span style="color: #8f8f8f">${count} (${percentage}%)</span>
                 </div>
-                <div class="option-stat-bar">
-                    <div class="bar-fill" style="width: ${percentage}%"></div>
-                    <span class="bar-label">${count} (${percentage}%)</span>
+                <div style="height: 10px; background: rgba(255,255,255,0.1); border-radius: 5px; overflow: hidden;">
+                    <div style="height: 100%; width: ${percentage}%; background: ${isCorrect ? '#00ff88' : '#ff416c'};"></div>
                 </div>
             </div>
         `;
@@ -308,104 +342,48 @@ function renderStats(stats, questionId) {
     statsContent.innerHTML = statsHTML;
 }
 
-/**
- * Слушать подключение игроков
- */
-function listenToPlayers() {
-    if (!currentGameId) return;
-    
-    db.ref(`games/${currentGameId}/players`).on('value', (snapshot) => {
-        const players = snapshot.val() || {};
-        const playerList = Object.values(players);
-        
-        // Обновить счетчик
-        playerCount.textContent = playerList.length;
-        
-        // Отобразить игроков
-        renderPlayers(playerList);
-    });
-}
-
-/**
- * Отобразить список игроков
- */
-function renderPlayers(players) {
-    if (players.length === 0) {
-        playersGrid.innerHTML = `
-            <div class="empty-players">
-                <i class="fas fa-user-friends fa-2x"></i>
-                <p>Ожидаем подключения учеников...</p>
-            </div>
-        `;
-        return;
-    }
-    
-    playersGrid.innerHTML = players.map(player => `
-        <div class="player-card">
-            <div class="player-avatar">
-                ${player.name.charAt(0).toUpperCase()}
-            </div>
-            <div class="player-info">
-                <h4>${player.name}</h4>
-                <div class="player-score">
-                    <i class="fas fa-star"></i> ${player.score || 0} очков
-                </div>
-            </div>
-        </div>
-    `).join('');
-}
-
-/**
- * Слушать ответы в реальном времени
- */
-function listenToAnswers() {
-    if (!currentGameId) return;
-    
-    db.ref(`games/${currentGameId}/answers`).on('value', (snapshot) => {
-        const answers = snapshot.val() || {};
-        // Можно добавить live-обновление статистики
-    });
-}
-
-/**
- * Показать список вопросов
- */
-function renderQuestionsList() {
-    if (!QUIZ_DATA.questions) return;
-    
-    questionsScroll.innerHTML = QUIZ_DATA.questions.map((question, index) => `
-        <div class="question-item ${index === currentQuestionIndex ? 'active' : ''} 
-             ${index < currentQuestionIndex ? 'completed' : ''}">
+function updateQuestionsList() {
+    questionsList.innerHTML = QUIZ_DATA.questions.map((q, index) => `
+        <div class="question-item ${index === currentQuestionIndex ? 'active' : ''}">
             <div class="question-number">${index + 1}</div>
-            <div class="question-content-small">
-                <div class="question-text-small">${question.text.substring(0, 60)}...</div>
-                <div class="question-meta-small">
-                    <span class="question-type-small">${getTypeLabel(question.type)}</span>
-                    <span class="question-time">${question.time} сек</span>
-                </div>
-            </div>
+            <div>${q.type === 'oral' ? '🎤' : '📝'} ${q.text.substring(0, 50)}...</div>
+            <div class="question-type">${getTypeLabel(q.type)}</div>
         </div>
     `).join('');
 }
 
-/**
- * Получить метку типа вопроса
- */
 function getTypeLabel(type) {
     const labels = {
-        oral: "🎤 Устное",
-        spelling: "📝 Орфография",
-        punctuation: "🔤 Пунктуация",
-        syntax: "📚 Синтаксис",
-        reading: "📖 Чтение",
-        writing: "✍️ Письмо"
+        oral: "Устное",
+        spelling: "Орфография",
+        punctuation: "Пунктуация",
+        syntax: "Синтаксис"
     };
     return labels[type] || type;
 }
 
-/**
- * Копировать код игры
- */
+function startPresentationTimer(seconds) {
+    let timeLeft = seconds;
+    presentationTimer.textContent = timeLeft;
+    presentationTimer.style.color = '#00ff88';
+    
+    const timer = setInterval(() => {
+        timeLeft--;
+        presentationTimer.textContent = timeLeft;
+        
+        // Менять цвет при окончании времени
+        if (timeLeft <= 10) {
+            presentationTimer.style.color = '#ff416c';
+            presentationTimer.style.animation = 'pulse 0.5s infinite';
+        }
+        
+        if (timeLeft <= 0) {
+            clearInterval(timer);
+            showAnswer(); // Автоматически показать ответ
+        }
+    }, 1000);
+}
+
 function copyGameCode() {
     if (!currentGameId) {
         alert("Сначала создайте игру!");
@@ -414,148 +392,50 @@ function copyGameCode() {
     
     const code = currentGameId.replace('game_', '');
     navigator.clipboard.writeText(code).then(() => {
-        showNotification("Код скопирован: " + code);
+        showNotification("Код скопирован!");
     });
 }
 
-/**
- * Показать уведомление
- */
 function showNotification(message) {
-    // Создать временное уведомление
     const notification = document.createElement('div');
-    notification.className = 'notification';
-    notification.textContent = message;
     notification.style.cssText = `
         position: fixed;
         top: 20px;
         right: 20px;
-        background: #10b981;
-        color: white;
-        padding: 15px 20px;
+        background: #00ff88;
+        color: #000;
+        padding: 15px 25px;
         border-radius: 10px;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-        z-index: 1000;
-        animation: fadeIn 0.3s;
+        font-weight: bold;
+        z-index: 10000;
+        animation: slideIn 0.3s ease;
     `;
-    
+    notification.textContent = message;
     document.body.appendChild(notification);
     
     setTimeout(() => {
-        notification.style.animation = 'fadeOut 0.3s';
-        setTimeout(() => {
-            document.body.removeChild(notification);
-        }, 300);
+        notification.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => document.body.removeChild(notification), 300);
     }, 3000);
 }
 
-// ================ ИНИЦИАЛИЗАЦИЯ ================
-
-// Добавить стили для уведомлений
+// Добавить анимации
 const style = document.createElement('style');
 style.textContent = `
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(-20px); }
-        to { opacity: 1; transform: translateY(0); }
+    @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
     }
     
-    @keyframes fadeOut {
-        from { opacity: 1; transform: translateY(0); }
-        to { opacity: 0; transform: translateY(-20px); }
-    }
-    
-    .question-item.active {
-        border-left: 4px solid #4361ee;
-        background: rgba(67, 97, 238, 0.1);
-    }
-    
-    .question-item.completed {
-        opacity: 0.7;
-    }
-    
-    .question-item.completed .question-number {
-        background: #10b981;
-    }
-    
-    .highlight-correct {
-        border: 3px solid #10b981 !important;
-        background: rgba(16, 185, 129, 0.1) !important;
-    }
-    
-    .highlight-wrong {
-        opacity: 0.6;
-    }
-    
-    .correct-badge {
-        background: #10b981;
-        color: white;
-        padding: 2px 8px;
-        border-radius: 10px;
-        font-size: 0.8rem;
-        margin-left: 10px;
-    }
-    
-    .option-stat-bar {
-        height: 20px;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 10px;
-        margin: 10px 0;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .bar-fill {
-        height: 100%;
-        background: linear-gradient(90deg, #4361ee, #3a0ca3);
-        border-radius: 10px;
-        transition: width 1s ease;
-    }
-    
-    .bar-label {
-        position: absolute;
-        right: 10px;
-        top: 50%;
-        transform: translateY(-50%);
-        font-size: 0.9rem;
-        color: white;
+    @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
     }
 `;
 document.head.appendChild(style);
 
-// Проверка загрузки
+// Инициализация
 document.addEventListener('DOMContentLoaded', function() {
-    console.log("teacher.js загружен");
-    
-    if (!window.db) {
-        console.error("Firebase не загружен!");
-        document.body.innerHTML += `
-            <div style="
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(0,0,0,0.9);
-                color: white;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                z-index: 10000;
-                padding: 20px;
-                text-align: center;
-            ">
-                <h2>❌ ОШИБКА ЗАГРУЗКИ</h2>
-                <p>Firebase не загрузился. Проверьте:</p>
-                <ol style="text-align: left; max-width: 500px; margin: 20px auto;">
-                    <li>Интернет-соединение</li>
-                    <li>Блокировку рекламы (может блокировать Firebase)</li>
-                    <li>Консоль браузера (F12) на наличие ошибок</li>
-                </ol>
-                <button onclick="location.reload()" class="btn btn-primary" style="margin-top: 20px;">
-                    🔄 Перезагрузить страницу
-                </button>
-            </div>
-        `;
-    }
+    console.log("Teacher panel loaded");
+    updateQuestionsList();
 });
