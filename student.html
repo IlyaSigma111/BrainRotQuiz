@@ -1,0 +1,110 @@
+let currentGameId = null;
+let currentQuestionIndex = 0;
+
+function startNewGame() {
+    currentGameId = firebaseAPI.startNewGame();
+    document.getElementById('gameCode').textContent = currentGameId.replace('game_', '');
+    document.getElementById('startBtn').style.display = 'none';
+    document.getElementById('questionControls').style.display = 'block';
+    
+    // Показать список вопросов
+    renderQuestionsList();
+    
+    // Следить за подключением игроков
+    db.ref(`games/${currentGameId}/players`).on('value', (snapshot) => {
+        const players = snapshot.val() || {};
+        renderPlayersList(players);
+    });
+}
+
+function showNextQuestion() {
+    if(!currentGameId || currentQuestionIndex >= QUIZ_DATA.questions.length) return;
+    
+    const question = QUIZ_DATA.questions[currentQuestionIndex];
+    
+    // Обновляем текущий вопрос в Firebase
+    db.ref(`games/${currentGameId}`).update({
+        currentQuestion: question.id,
+        questionStartTime: Date.now(),
+        status: "question_active"
+    });
+    
+    // Показать вопрос на доске
+    renderQuestion(question);
+    
+    // Запустить таймер
+    startTimer(question.time);
+    
+    // Следить за ответами
+    firebaseAPI.getQuestionStats(currentGameId, question.id, renderStats);
+    
+    currentQuestionIndex++;
+}
+
+function renderQuestion(question) {
+    const board = document.getElementById('questionBoard');
+    board.innerHTML = `
+        <div class="question-header">
+            <span class="question-type">${getTypeLabel(question.type)}</span>
+            <span class="question-timer" id="questionTimer">${question.time}</span>
+        </div>
+        <h2 class="question-text">${question.text}</h2>
+        <div class="options-grid">
+            ${question.options.map((opt, i) => `
+                <div class="option-card ${i === question.correct ? 'correct-option' : ''}">
+                    <div class="option-letter">${String.fromCharCode(65 + i)}</div>
+                    <div class="option-text">${opt}</div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+function startTimer(seconds) {
+    const timerEl = document.getElementById('questionTimer');
+    let timeLeft = seconds;
+    
+    const timer = setInterval(() => {
+        timeLeft--;
+        timerEl.textContent = timeLeft;
+        
+        if(timeLeft <= 0) {
+            clearInterval(timer);
+            showQuestionResults();
+        }
+    }, 1000);
+}
+
+function showQuestionResults() {
+    const question = QUIZ_DATA.questions[currentQuestionIndex - 1];
+    const board = document.getElementById('questionBoard');
+    
+    board.innerHTML += `
+        <div class="result-explanation">
+            <h4>✅ Правильный ответ: ${String.fromCharCode(65 + question.correct)}</h4>
+            <p>${question.explanation}</p>
+        </div>
+    `;
+}
+
+// Вспомогательные функции
+function getTypeLabel(type) {
+    const labels = {
+        oral: "🎤 Устное собеседование",
+        spelling: "📝 Орфография", 
+        punctuation: "🔤 Пунктуация",
+        syntax: "📚 Синтаксис"
+    };
+    return labels[type] || type;
+}
+
+function renderQuestionsList() {
+    const grid = document.getElementById('questionsGrid');
+    grid.innerHTML = QUIZ_DATA.questions.map((q, i) => `
+        <div class="question-preview ${i === currentQuestionIndex ? 'active' : ''}">
+            <div class="preview-number">${i + 1}</div>
+            <div class="preview-text">${q.text.substring(0, 50)}...</div>
+            <div class="preview-type">${getTypeLabel(q.type)}</div>
+        </div>
+    `).join('');
+}
