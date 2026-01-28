@@ -3,349 +3,211 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Brain Rot Quiz | Готовься к ОГЭ весело!</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Brain Quiz - Учительский режим</title>
+    <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
-    <!-- Анимированный фон -->
-    <div class="background-animation">
-        <div class="particles"></div>
-        <div class="floating-brain">
-            <div class="brain-left"></div>
-            <div class="brain-right"></div>
-        </div>
-    </div>
-
     <div class="container">
-        <!-- Анимированный логотип -->
+        <!-- Шапка -->
         <header class="header">
-            <div class="logo-container">
-                <div class="logo" id="animated-logo">
-                    <span class="logo-text" id="logo-text">Brain Quiz</span>
-                    <div class="rot-overlay" id="rot-overlay">Rot</div>
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-chalkboard-teacher"></i>
                 </div>
-                <div class="logo-subtitle">
-                    <span class="subtitle-text">Готовься к ОГЭ с мозговым взрывом!</span>
-                    <div class="sparkle"><i class="fas fa-bolt"></i></div>
+                <div class="logo-text">
+                    <h1>Brain Quiz</h1>
+                    <p class="subtitle">Учительский режим</p>
                 </div>
             </div>
             
-            <div class="stats-bar">
-                <div class="stat">
-                    <i class="fas fa-brain"></i>
-                    <span>Вопросов: <strong>50+</strong></span>
-                </div>
+            <div class="game-stats">
                 <div class="stat">
                     <i class="fas fa-users"></i>
-                    <span>Игроков: <strong id="online-count">0</strong></span>
+                    <span>Игроков: <strong id="player-count">0</strong></span>
                 </div>
                 <div class="stat">
-                    <i class="fas fa-fire"></i>
-                    <span>Сложность: <strong>🔥🔥🔥</strong></span>
+                    <i class="fas fa-gamepad"></i>
+                    <span>Статус: <strong id="game-status">Ожидание</strong></span>
                 </div>
             </div>
         </header>
 
         <main class="main-content">
-            <!-- Экран выбора режима -->
-            <section id="mode-screen" class="screen active">
-                <div class="mode-card glow">
-                    <h2 class="section-title"><i class="fas fa-gamepad"></i> Выбери режим погружения</h2>
+            <!-- Левая панель - управление -->
+            <div class="control-panel">
+                <div class="panel-card">
+                    <h2><i class="fas fa-cogs"></i> Управление игрой</h2>
                     
-                    <div class="mode-grid">
-                        <!-- Одиночный режим -->
-                        <div class="mode-option" data-mode="solo">
-                            <div class="mode-icon pulse">
-                                <i class="fas fa-user-astronaut"></i>
-                            </div>
-                            <h3>Соло Тренировка</h3>
-                            <p>Прокачивай мозг в своем темпе</p>
-                            <ul class="mode-features">
-                                <li><i class="fas fa-check"></i> Все вопросы ОГЭ</li>
-                                <li><i class="fas fa-check"></i> Подробный разбор</li>
-                                <li><i class="fas fa-check"></i> Прогресс сохранения</li>
-                            </ul>
-                            <button class="btn-neon" data-action="start-solo">
-                                <i class="fas fa-play"></i> Начать тренировку
-                            </button>
-                        </div>
-
-                        <!-- Баттл режим -->
-                        <div class="mode-option featured" data-mode="battle">
-                            <div class="mode-icon rotate">
-                                <i class="fas fa-bolt"></i>
-                                <div class="featured-badge">HOT</div>
-                            </div>
-                            <h3>Brain Battle</h3>
-                            <p>Сразись с одноклассниками в реальном времени</p>
-                            <ul class="mode-features">
-                                <li><i class="fas fa-check"></i> Живые соревнования</li>
-                                <li><i class="fas fa-check"></i> Рейтинг лидеров</li>
-                                <li><i class="fas fa-check"></i> Классные призы</li>
-                            </ul>
-                            <button class="btn-neon btn-pulse" data-action="start-battle">
-                                <i class="fas fa-fire"></i> Бросить вызов
-                            </button>
-                        </div>
-
-                        <!-- Для учителей -->
-                        <div class="mode-option" data-mode="teacher">
-                            <div class="mode-icon float">
-                                <i class="fas fa-chalkboard-teacher"></i>
-                            </div>
-                            <h3>Классный режим</h3>
-                            <p>Для учителей и репетиторов</p>
-                            <ul class="mode-features">
-                                <li><i class="fas fa-check"></i> Управление классом</li>
-                                <li><i class="fas fa-check"></i> QR-подключение</li>
-                                <li><i class="fas fa-check"></i> Аналитика ответов</li>
-                            </ul>
-                            <button class="btn-neon" data-action="start-teacher">
-                                <i class="fas fa-qrcode"></i> Создать игру
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Быстрый старт -->
-                    <div class="quick-actions">
-                        <h3><i class="fas fa-rocket"></i> Быстрый старт</h3>
-                        <div class="quick-buttons">
-                            <button class="btn-quick" data-topic="oral">
-                                <i class="fas fa-microphone"></i> Устное собеседование
-                            </button>
-                            <button class="btn-quick" data-topic="oge">
-                                <i class="fas fa-file-alt"></i> Тест ОГЭ
-                            </button>
-                            <button class="btn-quick" data-topic="random">
-                                <i class="fas fa-dice"></i> Случайные вопросы
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Интерактивный мозг -->
-                <div class="interactive-brain">
-                    <div class="brain-model">
-                        <div class="neuron" style="top: 20%; left: 30%;"></div>
-                        <div class="neuron" style="top: 40%; left: 60%;"></div>
-                        <div class="neuron" style="top: 70%; left: 40%;"></div>
-                        <div class="connection"></div>
-                    </div>
-                    <p class="brain-tip">Наведи курсор на мозг — включи нейроны!</p>
-                </div>
-            </section>
-
-            <!-- Экран игры -->
-            <section id="game-screen" class="screen">
-                <div class="game-header">
                     <div class="game-info">
-                        <div class="progress-container">
-                            <div class="progress-bar" id="progress-bar">
-                                <div class="progress-fill"></div>
-                            </div>
-                            <span class="progress-text">Вопрос <span id="current-q">1</span>/<span id="total-q">10</span></span>
+                        <div class="info-item">
+                            <label>Код игры:</label>
+                            <div class="code-display" id="game-code-display">----</div>
                         </div>
                         
-                        <div class="stats">
-                            <div class="stat-box">
-                                <i class="fas fa-clock"></i>
-                                <span id="timer">30</span>с
-                            </div>
-                            <div class="stat-box">
-                                <i class="fas fa-star"></i>
-                                <span id="score">0</span> очков
-                            </div>
-                            <div class="stat-box">
-                                <i class="fas fa-brain"></i>
-                                <span id="streak">0</span> подряд
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="player-info">
-                        <div class="player-avatar">
-                            <i class="fas fa-user"></i>
-                        </div>
-                        <span id="player-name">Игрок</span>
-                        <div class="level-indicator">
-                            Уровень: <span id="player-level">1</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Вопрос -->
-                <div class="question-container shake-on-new">
-                    <div class="question-header">
-                        <span class="category-badge" id="question-category">Устное собеседование</span>
-                        <span class="difficulty" id="question-difficulty">Средняя</span>
-                    </div>
-                    
-                    <h2 class="question-text" id="question-text">Текст вопроса появится здесь...</h2>
-                    
-                    <div class="hint-box" id="hint-box">
-                        <i class="fas fa-lightbulb"></i>
-                        <span id="hint-text">Подсказка появится здесь</span>
-                    </div>
-                </div>
-
-                <!-- Варианты ответов -->
-                <div class="options-grid" id="options-container">
-                    <!-- Варианты генерируются через JS -->
-                </div>
-
-                <!-- Фидбэк -->
-                <div class="feedback-container">
-                    <div class="feedback" id="feedback">
-                        <div class="feedback-content" id="feedback-content">
-                            <!-- Фидбэк появляется здесь -->
-                        </div>
-                        <div class="next-button">
-                            <button id="next-btn" class="btn-neon">
-                                <i class="fas fa-forward"></i> Далее
+                        <div class="info-item">
+                            <label>Ссылка для учеников:</label>
+                            <div class="link-display" id="game-link">...</div>
+                            <button class="btn btn-small" id="copy-link">
+                                <i class="fas fa-copy"></i> Копировать
                             </button>
                         </div>
+                        
+                        <div class="info-item">
+                            <label>QR-код:</label>
+                            <div class="qr-container" id="qrcode"></div>
+                            <p class="qr-hint">Отсканируйте для быстрого входа</p>
+                        </div>
+                    </div>
+                    
+                    <div class="control-buttons">
+                        <button class="btn btn-primary" id="start-game">
+                            <i class="fas fa-play"></i> Начать игру
+                        </button>
+                        <button class="btn btn-secondary" id="next-question" disabled>
+                            <i class="fas fa-forward"></i> Следующий вопрос
+                        </button>
+                        <button class="btn btn-danger" id="end-game">
+                            <i class="fas fa-stop"></i> Завершить
+                        </button>
                     </div>
                 </div>
-
-                <!-- Бонусы -->
-                <div class="bonus-panel">
-                    <button class="bonus-btn" id="hint-btn" title="Подсказка (50 очков)">
-                        <i class="fas fa-lightbulb"></i>
-                    </button>
-                    <button class="bonus-btn" id="skip-btn" title="Пропустить вопрос (100 очков)">
-                        <i class="fas fa-forward"></i>
-                    </button>
-                    <button class="bonus-btn" id="double-btn" title="Удвоить очки (200 очков)">
-                        <i class="fas fa-gem"></i>
-                    </button>
+                
+                <!-- Список игроков -->
+                <div class="panel-card">
+                    <h2><i class="fas fa-users"></i> Подключенные игроки</h2>
+                    <div class="players-list" id="players-list">
+                        <div class="empty-state">
+                            <i class="fas fa-user-plus"></i>
+                            <p>Игроки появятся здесь</p>
+                        </div>
+                    </div>
                 </div>
-            </section>
+            </div>
 
-            <!-- Экран результатов -->
-            <section id="results-screen" class="screen">
-                <div class="results-card glow">
-                    <div class="results-header">
+            <!-- Центральная часть - отображение игры -->
+            <div class="game-display">
+                <!-- Экран ожидания -->
+                <div class="display-screen active" id="waiting-screen">
+                    <div class="waiting-content">
+                        <div class="waiting-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <h2>Ожидание игроков</h2>
+                        <p>Попросите учеников подключиться к игре</p>
+                        <p class="instruction">1. Откройте сайт на телефоне<br>2. Введите код игры или отсканируйте QR</p>
+                    </div>
+                </div>
+                
+                <!-- Экран вопроса -->
+                <div class="display-screen" id="question-screen">
+                    <div class="question-content">
+                        <div class="question-header">
+                            <div class="question-meta">
+                                <span class="category" id="question-category">Устное собеседование</span>
+                                <span class="timer" id="display-timer">30</span>
+                            </div>
+                            <div class="question-number">
+                                Вопрос <span id="current-question">1</span> из <span id="total-questions">10</span>
+                            </div>
+                        </div>
+                        
+                        <h2 class="question-text" id="display-question">
+                            Какой стиль используется в научных статьях и учебниках?
+                        </h2>
+                        
+                        <div class="options-grid" id="display-options">
+                            <!-- Варианты появятся здесь -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Экран результатов -->
+                <div class="display-screen" id="results-screen">
+                    <div class="results-content">
+                        <h2><i class="fas fa-chart-bar"></i> Результаты</h2>
+                        
+                        <div class="stats-grid" id="answer-stats">
+                            <!-- Статистика по ответам -->
+                        </div>
+                        
+                        <div class="mini-leaderboard">
+                            <h3>Топ игроков:</h3>
+                            <div id="mini-leaderboard-content">
+                                <!-- Мини-лидерборд -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Финальный экран -->
+                <div class="display-screen" id="final-screen">
+                    <div class="final-content">
                         <div class="trophy">
                             <i class="fas fa-trophy"></i>
                         </div>
-                        <h2>Твой мозг прокачан!</h2>
-                        <div class="confetti"></div>
-                    </div>
-
-                    <div class="score-display">
-                        <div class="score-circle">
-                            <div class="score-value" id="final-score">0</div>
-                            <div class="score-label">очков</div>
+                        <h2>Игра завершена!</h2>
+                        
+                        <div class="final-leaderboard" id="final-leaderboard">
+                            <!-- Финальный лидерборд -->
                         </div>
                         
-                        <div class="score-details">
-                            <div class="detail">
-                                <span class="label">Правильно:</span>
-                                <span class="value" id="correct-count">0/10</span>
-                            </div>
-                            <div class="detail">
-                                <span class="label">Серия ответов:</span>
-                                <span class="value" id="best-streak">0</span>
-                            </div>
-                            <div class="detail">
-                                <span class="label">Время:</span>
-                                <span class="value" id="total-time">0с</span>
-                            </div>
-                            <div class="detail">
-                                <span class="label">Уровень мозга:</span>
-                                <span class="value" id="brain-level">Новичок</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="achievements">
-                        <h3><i class="fas fa-award"></i> Достижения</h3>
-                        <div class="achievements-grid" id="achievements-list">
-                            <!-- Достижения -->
-                        </div>
-                    </div>
-
-                    <div class="share-section">
-                        <h3><i class="fas fa-share-alt"></i> Похвастайся результатом!</h3>
-                        <div class="share-buttons">
-                            <button class="btn-share" id="share-vk">
-                                <i class="fab fa-vk"></i> VK
-                            </button>
-                            <button class="btn-share" id="share-tg">
-                                <i class="fab fa-telegram"></i> Telegram
-                            </button>
-                            <button class="btn-share" id="copy-link">
-                                <i class="fas fa-link"></i> Копировать
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="actions">
-                        <button id="play-again-btn" class="btn-neon btn-large">
-                            <i class="fas fa-redo"></i> Играть еще раз
-                        </button>
-                        <button id="leaderboard-btn" class="btn-neon btn-large">
-                            <i class="fas fa-crown"></i> Таблица лидеров
+                        <button class="btn btn-primary" id="new-game">
+                            <i class="fas fa-plus"></i> Новая игра
                         </button>
                     </div>
                 </div>
-            </section>
-
-            <!-- Лидерборд -->
-            <section id="leaderboard-screen" class="screen">
-                <div class="leaderboard-card">
-                    <h2><i class="fas fa-crown"></i> Топ мозгов класса</h2>
-                    <div class="leaderboard-tabs">
-                        <button class="tab active" data-period="day">За день</button>
-                        <button class="tab" data-period="week">За неделю</button>
-                        <button class="tab" data-period="all">Все время</button>
-                    </div>
-                    
-                    <div class="leaderboard-list" id="leaderboard-content">
-                        <!-- Лидерборд загружается из Firebase -->
-                    </div>
-                    
-                    <button class="btn-neon" id="back-to-main">
-                        <i class="fas fa-arrow-left"></i> На главную
-                    </button>
-                </div>
-            </section>
+            </div>
         </main>
 
         <footer class="footer">
-            <div class="footer-content">
-                <div class="footer-logo">
-                    <span class="logo-mini">BR</span>
-                    <span>Brain Rot Quiz</span>
-                </div>
-                <div class="footer-links">
-                    <a href="#"><i class="fas fa-question-circle"></i> Помощь</a>
-                    <a href="#"><i class="fas fa-envelope"></i> Обратная связь</a>
-                    <a href="#"><i class="fas fa-shield-alt"></i> Конфиденциальность</a>
-                </div>
-                <div class="footer-credits">
-                    <p>© 2024 Brain Rot Quiz. Подготовка к ОГЭ стала веселой!</p>
-                    <p class="fire-note">🔥 Powered by Firebase & Brain Power 🔥</p>
-                </div>
-            </div>
+            <p>Brain Quiz - Учительский режим | Использует Firebase Realtime Database</p>
         </footer>
     </div>
 
-    <!-- Модальное окно для имени -->
-    <div class="modal" id="name-modal">
+    <!-- Модальное окно создания игры -->
+    <div class="modal active" id="create-game-modal">
         <div class="modal-content">
-            <h3><i class="fas fa-user-astronaut"></i> Введи свое имя, мозго-воин!</h3>
-            <input type="text" id="player-name-input" placeholder="Как тебя зовут?" maxlength="20">
+            <h2><i class="fas fa-gamepad"></i> Создать новую игру</h2>
+            
+            <div class="form-group">
+                <label for="game-name">Название игры:</label>
+                <input type="text" id="game-name" placeholder="Например: 9А класс" value="Классная игра">
+            </div>
+            
+            <div class="form-group">
+                <label>Выберите тему:</label>
+                <div class="topic-buttons">
+                    <button class="topic-btn active" data-topic="all">
+                        <i class="fas fa-random"></i> Все темы
+                    </button>
+                    <button class="topic-btn" data-topic="oral">
+                        <i class="fas fa-microphone"></i> Устное собеседование
+                    </button>
+                    <button class="topic-btn" data-topic="oge">
+                        <i class="fas fa-file-alt"></i> ОГЭ
+                    </button>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Количество вопросов:</label>
+                <div class="range-slider">
+                    <input type="range" id="question-count" min="5" max="20" value="10">
+                    <span id="count-value">10</span>
+                </div>
+            </div>
+            
             <div class="modal-actions">
-                <button id="save-name-btn" class="btn-neon">
-                    <i class="fas fa-play"></i> Погнали!
+                <button class="btn btn-primary btn-large" id="create-game">
+                    <i class="fas fa-rocket"></i> Создать игру
                 </button>
-                <button id="random-name-btn" class="btn-secondary">
-                    <i class="fas fa-dice"></i> Случайное имя
+                <button class="btn btn-secondary" id="quick-start">
+                    <i class="fas fa-bolt"></i> Быстрый старт
                 </button>
             </div>
         </div>
@@ -354,25 +216,6 @@
     <!-- Скрипты -->
     <script src="firebase-config.js"></script>
     <script src="quiz-data.js"></script>
-    <script src="quiz-engine.js"></script>
-    <script src="logo-animation.js"></script>
-    <script>
-        // Инициализация Firebase
-        const firebaseConfig = {
-            apiKey: "AIzaSyC9OSllGc8U-au0281HfikJkI5caDkqOYc",
-            authDomain: "goydacloud.firebaseapp.com",
-            databaseURL: "https://goydacloud-default-rtdb.firebaseio.com",
-            projectId: "goydacloud",
-            storageBucket: "goydacloud.firebasestorage.app",
-            messagingSenderId: "937429390580",
-            appId: "1:937429390580:web:7be76b6755a07ff6ae7aa1"
-        };
-        
-        // Инициализируем Firebase
-        firebase.initializeApp(firebaseConfig);
-        
-        // Создаем глобальную переменную для доступа к БД
-        window.database = firebase.database();
-    </script>
+    <script src="teacher.js"></script>
 </body>
 </html>
