@@ -1,12 +1,13 @@
-// Учительский скрипт - упрощенная версия
+// Учительский скрипт - РАБОЧАЯ ВЕРСИЯ
 document.addEventListener('DOMContentLoaded', function() {
-    // Элементы
+    // Элементы формы
     const createGameBtn = document.getElementById('create-game-btn');
     const gameNameInput = document.getElementById('game-name');
     const topicButtons = document.querySelectorAll('.topic-btn');
     const questionCountSlider = document.getElementById('question-count');
     const questionCountDisplay = document.getElementById('question-count-display');
     
+    // Элементы информации об игре
     const gameInfoCard = document.getElementById('game-info-card');
     const controlCard = document.getElementById('control-card');
     const playersCard = document.getElementById('players-card');
@@ -14,19 +15,23 @@ document.addEventListener('DOMContentLoaded', function() {
     const gameCodeDisplay = document.getElementById('game-code-display');
     const gameLinkBox = document.getElementById('game-link-box');
     const copyLinkBtn = document.getElementById('copy-link-btn');
-    const qrcodeDiv = document.getElementById('qrcode');
     
+    // Элементы управления
     const startGameBtn = document.getElementById('start-game-btn');
     const nextQuestionBtn = document.getElementById('next-question-btn');
     const endGameBtn = document.getElementById('end-game-btn');
     const newGameBtn = document.getElementById('new-game-btn');
     
+    // Элементы статистики
     const playerCountSpan = document.getElementById('player-count');
     const gameStatusSpan = document.getElementById('game-status');
     const playersList = document.getElementById('players-list');
     const playersCountSpan = document.getElementById('players-count');
     const bigPlayerCount = document.getElementById('big-player-count');
+    const bigGameCode = document.getElementById('big-game-code');
+    const instructionCode = document.getElementById('instruction-code');
     
+    // Экранные элементы
     const screens = {
         welcome: document.getElementById('welcome-screen'),
         waiting: document.getElementById('waiting-screen'),
@@ -42,89 +47,122 @@ document.addEventListener('DOMContentLoaded', function() {
     const totalQuestionsSpan = document.getElementById('total-questions');
     const optionsGrid = document.getElementById('options-grid');
     
-    // Firebase
+    // Firebase переменные
     let database;
     let gameRef;
     let playersRef;
     let currentGameCode = '';
     let currentQuestionIndex = 0;
     let timerInterval;
+    let selectedTopic = 'all';
     
-    // Инициализация Firebase
-    try {
-        if (typeof firebase !== 'undefined') {
+    // === ИНИЦИАЛИЗАЦИЯ ===
+    function init() {
+        console.log('Инициализация учительского интерфейса...');
+        
+        // Инициализация Firebase
+        try {
             firebase.initializeApp(firebaseConfig);
             database = firebase.database();
-            console.log('Firebase подключен');
+            console.log('Firebase успешно подключен');
+        } catch (error) {
+            console.error('Ошибка Firebase:', error);
+            alert('Ошибка подключения к базе данных. Проверьте интернет.');
         }
-    } catch (error) {
-        console.error('Ошибка Firebase:', error);
-        alert('Проверьте подключение к интернету');
+        
+        // Настройка слайдера
+        questionCountSlider.addEventListener('input', function() {
+            questionCountDisplay.textContent = this.value;
+        });
+        
+        // Настройка кнопок тем
+        topicButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                console.log('Выбрана тема:', this.dataset.topic);
+                topicButtons.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                selectedTopic = this.dataset.topic;
+            });
+        });
+        
+        // Привязка обработчиков событий
+        createGameBtn.addEventListener('click', handleCreateGame);
+        startGameBtn.addEventListener('click', handleStartGame);
+        nextQuestionBtn.addEventListener('click', handleNextQuestion);
+        endGameBtn.addEventListener('click', handleEndGame);
+        newGameBtn.addEventListener('click', handleNewGame);
+        copyLinkBtn.addEventListener('click', handleCopyLink);
+        
+        console.log('Инициализация завершена');
     }
     
-    // Обновление счетчика вопросов
-    questionCountSlider.addEventListener('input', function() {
-        questionCountDisplay.textContent = this.value;
-    });
-    
-    // Выбор темы
-    topicButtons.forEach(btn => {
-        btn.addEventListener('click', function() {
-            topicButtons.forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-        });
-    });
-    
-    // Создание игры
-    createGameBtn.addEventListener('click', createGame);
-    
-    function createGame() {
-        if (!database) {
-            alert('Firebase не подключен. Проверьте интернет.');
-            return;
-        }
+    // === СОЗДАНИЕ ИГРЫ ===
+    function handleCreateGame() {
+        console.log('Нажата кнопка "Создать игру"');
         
-        const gameName = gameNameInput.value.trim() || 'Игра';
-        const selectedTopic = document.querySelector('.topic-btn.active').dataset.topic;
+        // Получаем данные формы
+        const gameName = gameNameInput.value.trim() || 'Классная игра';
         const questionCount = parseInt(questionCountSlider.value);
         
-        // Генерация кода игры
-        currentGameCode = generateGameCode();
-        gameCodeDisplay.textContent = currentGameCode;
+        console.log('Данные формы:', {
+            gameName,
+            selectedTopic,
+            questionCount
+        });
         
-        // Создаем URL для учеников
-        let studentUrl;
+        // Генерируем код игры
+        currentGameCode = generateGameCode();
+        console.log('Сгенерирован код игры:', currentGameCode);
+        
+        // Показываем код игры
+        gameCodeDisplay.textContent = currentGameCode;
+        bigGameCode.textContent = currentGameCode;
+        instructionCode.textContent = currentGameCode;
+        
+        // Создаем ссылку для учеников
+        let studentUrl = '';
         if (window.location.hostname.includes('github.io')) {
             // GitHub Pages
-            studentUrl = window.location.href.replace('brain-quiz-teacher', 'brain-quiz-student');
+            const baseUrl = window.location.origin;
+            studentUrl = baseUrl.replace('brain-quiz-teacher', 'brain-quiz-student');
         } else {
             // Локальная разработка
-            studentUrl = window.location.origin + '/student';
+            studentUrl = window.location.origin;
         }
         
-        studentUrl = studentUrl.replace('/teacher', '/student');
         const fullUrl = `${studentUrl}?game=${currentGameCode}`;
-        
-        // Показываем ссылку
         gameLinkBox.textContent = fullUrl;
         
         // Генерируем QR-код
-        qrcodeDiv.innerHTML = '';
-        if (typeof QRCode !== 'undefined') {
-            new QRCode(qrcodeDiv, {
-                text: fullUrl,
-                width: 180,
-                height: 180,
-                colorDark: "#000000",
-                colorLight: "#ffffff",
-                correctLevel: QRCode.CorrectLevel.H
-            });
-        }
+        generateQRCode(fullUrl, 'qrcode');
+        
+        // Показываем карточки управления
+        gameInfoCard.style.display = 'block';
+        controlCard.style.display = 'block';
+        playersCard.style.display = 'block';
+        
+        // Переключаем на экран ожидания
+        switchScreen('waiting');
         
         // Создаем игру в Firebase
-        gameRef = database.ref(`games/${currentGameCode}`);
+        createGameInFirebase(gameName, questionCount);
         
-        // Фильтруем вопросы
+        alert(`Игра "${gameName}" создана!\nКод: ${currentGameCode}\nПокажите этот код ученикам`);
+    }
+    
+    function generateGameCode() {
+        return Math.floor(1000 + Math.random() * 9000).toString();
+    }
+    
+    function createGameInFirebase(gameName, questionCount) {
+        if (!database) {
+            console.error('Firebase не инициализирован');
+            return;
+        }
+        
+        console.log('Создание игры в Firebase...');
+        
+        // Фильтруем вопросы по теме
         let questionsToUse = [...quizQuestions];
         if (selectedTopic === 'oral') {
             questionsToUse = quizQuestions.filter(q => q.category.includes('Устное'));
@@ -132,7 +170,11 @@ document.addEventListener('DOMContentLoaded', function() {
             questionsToUse = quizQuestions.filter(q => q.category.includes('ОГЭ'));
         }
         
+        // Берем нужное количество вопросов
         questionsToUse = questionsToUse.slice(0, questionCount);
+        
+        // Создаем ссылку на игру в Firebase
+        gameRef = database.ref(`games/${currentGameCode}`);
         
         // Сохраняем настройки игры
         gameRef.set({
@@ -144,12 +186,13 @@ document.addEventListener('DOMContentLoaded', function() {
             topic: selectedTopic,
             createdAt: firebase.database.ServerValue.TIMESTAMP
         }).then(() => {
-            console.log('Игра создана, код:', currentGameCode);
+            console.log('Настройки игры сохранены');
             
             // Сохраняем вопросы
             const questionsData = {};
             questionsToUse.forEach((q, index) => {
                 questionsData[index] = {
+                    id: q.id,
                     question: q.question,
                     options: q.options,
                     correct: q.correct,
@@ -160,47 +203,40 @@ document.addEventListener('DOMContentLoaded', function() {
             
             return gameRef.child('questions').set(questionsData);
         }).then(() => {
-            // Показываем карточки управления
-            gameInfoCard.style.display = 'block';
-            controlCard.style.display = 'block';
-            playersCard.style.display = 'block';
+            console.log('Вопросы сохранены:', questionsToUse.length);
             
-            // Переключаем на экран ожидания
-            switchScreen('waiting');
-            
-            // Слушаем игроков
+            // Начинаем слушать игроков
             playersRef = gameRef.child('players');
-            playersRef.on('value', updatePlayersList);
+            playersRef.on('value', handlePlayersUpdate);
             
-            // Слушаем состояние игры
+            // Слушаем изменения игры
             gameRef.on('value', handleGameUpdate);
             
-            // Активируем кнопки
+            // Активируем кнопку старта
             startGameBtn.disabled = false;
-            gameStatusSpan.textContent = 'Ожидание игроков';
             
-            alert(`Игра "${gameName}" создана!\nКод: ${currentGameCode}\nПокажите этот код ученикам`);
         }).catch(error => {
             console.error('Ошибка создания игры:', error);
             alert('Ошибка создания игры: ' + error.message);
         });
     }
     
-    function generateGameCode() {
-        return Math.floor(1000 + Math.random() * 9000).toString();
-    }
-    
-    function updatePlayersList(snapshot) {
+    // === ОБНОВЛЕНИЕ ИГРОКОВ ===
+    function handlePlayersUpdate(snapshot) {
         const players = snapshot.val() || {};
         const count = Object.keys(players).length;
         
+        console.log('Обновление списка игроков:', count);
+        
+        // Обновляем счетчики
         playerCountSpan.textContent = count;
         playersCountSpan.textContent = count;
         bigPlayerCount.textContent = count;
         
+        // Обновляем список игроков
         let html = '';
         if (count === 0) {
-            html = '<div class="empty">Нет подключенных игроков</div>';
+            html = '<div class="empty">Ожидание подключения игроков...</div>';
         } else {
             Object.values(players).forEach(player => {
                 html += `
@@ -209,7 +245,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             ${player.name ? player.name.charAt(0).toUpperCase() : '?'}
                         </div>
                         <div class="player-name">${player.name || 'Аноним'}</div>
-                        <div class="player-score">${player.score || 0}</div>
+                        <div class="player-score">${player.score || 0} очков</div>
                     </div>
                 `;
             });
@@ -218,16 +254,22 @@ document.addEventListener('DOMContentLoaded', function() {
         playersList.innerHTML = html;
     }
     
+    // === ОБНОВЛЕНИЕ ИГРЫ ===
     function handleGameUpdate(snapshot) {
         const gameData = snapshot.val();
-        if (!gameData) return;
+        if (!gameData) {
+            console.log('Игра не найдена в Firebase');
+            return;
+        }
         
         const state = gameData.state || 'waiting';
         currentQuestionIndex = gameData.currentQuestion || 0;
         
+        console.log('Обновление состояния игры:', state, 'вопрос:', currentQuestionIndex);
+        
         // Обновляем статус
         const statusTexts = {
-            'waiting': 'Ожидание',
+            'waiting': 'Ожидание игроков',
             'question': 'Вопрос активен',
             'results': 'Результаты',
             'finished': 'Завершено'
@@ -237,36 +279,38 @@ document.addEventListener('DOMContentLoaded', function() {
         // Переключаем экраны
         switchScreen(state);
         
-        // Обновляем информацию о вопросе
+        // Обновляем информацию
         if (gameData.totalQuestions) {
             totalQuestionsSpan.textContent = gameData.totalQuestions;
         }
         
-        // Если активен вопрос
-        if (state === 'question') {
-            showQuestion(currentQuestionIndex);
-            startTimer();
-            nextQuestionBtn.disabled = true;
-        }
-        
-        // Если показываем результаты
-        if (state === 'results') {
-            showResults(currentQuestionIndex);
-            nextQuestionBtn.disabled = false;
-        }
-        
-        // Если игра завершена
-        if (state === 'finished') {
-            showFinalResults();
-            nextQuestionBtn.disabled = true;
-            startGameBtn.disabled = true;
+        // Обработка разных состояний
+        switch(state) {
+            case 'question':
+                showQuestion(currentQuestionIndex);
+                startTimer();
+                nextQuestionBtn.disabled = true;
+                break;
+                
+            case 'results':
+                showResults(currentQuestionIndex);
+                nextQuestionBtn.disabled = false;
+                break;
+                
+            case 'finished':
+                showFinalResults();
+                nextQuestionBtn.disabled = true;
+                startGameBtn.disabled = true;
+                break;
         }
     }
     
     function switchScreen(screenName) {
+        console.log('Переключение экрана на:', screenName);
+        
         // Скрываем все экраны
         Object.values(screens).forEach(screen => {
-            screen.classList.remove('active');
+            if (screen) screen.classList.remove('active');
         });
         
         // Показываем нужный экран
@@ -275,18 +319,25 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // === ПОКАЗ ВОПРОСА ===
     function showQuestion(index) {
         if (!gameRef) return;
         
+        console.log('Показ вопроса:', index);
+        
         gameRef.child(`questions/${index}`).once('value').then(snapshot => {
             const question = snapshot.val();
-            if (!question) return;
+            if (!question) {
+                console.error('Вопрос не найден:', index);
+                return;
+            }
             
+            // Обновляем интерфейс
             currentQuestionSpan.textContent = index + 1;
             questionCategory.textContent = question.category;
             questionText.textContent = question.question;
             
-            // Показываем варианты
+            // Показываем варианты ответов
             let optionsHtml = '';
             question.options.forEach((option, i) => {
                 optionsHtml += `
@@ -298,6 +349,9 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             optionsGrid.innerHTML = optionsHtml;
+            
+        }).catch(error => {
+            console.error('Ошибка загрузки вопроса:', error);
         });
     }
     
@@ -310,6 +364,7 @@ document.addEventListener('DOMContentLoaded', function() {
             timeLeft--;
             questionTimer.textContent = timeLeft;
             
+            // Меняем цвет при малом времени
             if (timeLeft <= 10) {
                 questionTimer.style.color = '#ef4444';
             }
@@ -324,8 +379,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 1000);
     }
     
+    // === ПОКАЗ РЕЗУЛЬТАТОВ ===
     function showResults(questionIndex) {
         if (!gameRef || !playersRef) return;
+        
+        console.log('Показ результатов для вопроса:', questionIndex);
         
         // Получаем вопрос
         gameRef.child(`questions/${questionIndex}`).once('value').then(qSnapshot => {
@@ -336,7 +394,7 @@ document.addEventListener('DOMContentLoaded', function() {
             playersRef.once('value').then(pSnapshot => {
                 const players = pSnapshot.val() || {};
                 
-                // Считаем статистику
+                // Считаем статистику ответов
                 const answerCounts = [0, 0, 0, 0];
                 let totalAnswers = 0;
                 
@@ -363,12 +421,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="stat-row">
                             <div class="stat-label">
                                 <span class="stat-letter">${String.fromCharCode(65 + i)}</span>
-                                <span>${option}</span>
-                                ${isCorrect ? '<span style="color:#10b981; margin-left:10px;">✓ Правильный</span>' : ''}
+                                <span class="stat-text">${option}</span>
+                                ${isCorrect ? '<span class="correct-mark">✓ Правильный</span>' : ''}
                             </div>
                             <div class="bar-container">
                                 <div class="bar" style="width: ${Math.max(10, percentage)}%">
-                                    ${count} (${percentage}%)
+                                    <span class="bar-text">${count} (${percentage}%)</span>
                                 </div>
                             </div>
                         </div>
@@ -379,7 +437,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Показываем мини-лидерборд
                 showMiniLeaderboard(players);
+                
+            }).catch(error => {
+                console.error('Ошибка загрузки игроков:', error);
             });
+            
+        }).catch(error => {
+            console.error('Ошибка загрузки вопроса:', error);
         });
     }
     
@@ -394,16 +458,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="leaderboard-item">
                     <span class="rank">${index + 1}</span>
                     <span class="name">${player.name || 'Аноним'}</span>
-                    <span class="score">${player.score || 0}</span>
+                    <span class="score">${player.score || 0} очков</span>
                 </div>
             `;
         });
         
-        document.getElementById('quick-leaderboard').innerHTML = html;
+        const quickLeaderboard = document.getElementById('quick-leaderboard');
+        if (quickLeaderboard) {
+            quickLeaderboard.innerHTML = html;
+        }
     }
     
     function showFinalResults() {
         if (!playersRef) return;
+        
+        console.log('Показ финальных результатов');
         
         playersRef.once('value').then(snapshot => {
             const players = snapshot.val() || {};
@@ -418,35 +487,47 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="leaderboard-item">
                         <span class="rank">${index + 1} ${medal}</span>
                         <span class="name">${player.name || 'Аноним'}</span>
-                        <span class="score">${player.score || 0}</span>
+                        <span class="score">${player.score || 0} очков</span>
                     </div>
                 `;
             });
             
-            document.getElementById('final-leaderboard').innerHTML = html;
+            const finalLeaderboard = document.getElementById('final-leaderboard');
+            if (finalLeaderboard) {
+                finalLeaderboard.innerHTML = html;
+            }
+        }).catch(error => {
+            console.error('Ошибка загрузки финальных результатов:', error);
         });
     }
     
-    // Кнопка "Начать игру"
-    startGameBtn.addEventListener('click', function() {
+    // === ОБРАБОТЧИКИ КНОПОК ===
+    function handleStartGame() {
+        console.log('Нажата кнопка "Начать игру"');
+        
         if (gameRef) {
             gameRef.update({
                 state: 'question',
                 currentQuestion: 0
             });
-            this.disabled = true;
+            startGameBtn.disabled = true;
+        } else {
+            alert('Сначала создайте игру!');
         }
-    });
+    }
     
-    // Кнопка "Следующий вопрос"
-    nextQuestionBtn.addEventListener('click', function() {
+    function handleNextQuestion() {
+        console.log('Нажата кнопка "Следующий вопрос"');
+        
         if (!gameRef) return;
         
         const nextIndex = currentQuestionIndex + 1;
         
         gameRef.once('value').then(snapshot => {
             const gameData = snapshot.val();
-            if (nextIndex < (gameData.totalQuestions || 10)) {
+            const totalQuestions = gameData.totalQuestions || 10;
+            
+            if (nextIndex < totalQuestions) {
                 gameRef.update({
                     state: 'question',
                     currentQuestion: nextIndex
@@ -454,28 +535,38 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 gameRef.update({ state: 'finished' });
             }
+        }).catch(error => {
+            console.error('Ошибка перехода к следующему вопросу:', error);
         });
-    });
+    }
     
-    // Кнопка "Завершить игру"
-    endGameBtn.addEventListener('click', function() {
+    function handleEndGame() {
+        console.log('Нажата кнопка "Завершить игру"');
+        
         if (gameRef) {
-            gameRef.update({ state: 'finished' });
+            if (confirm('Завершить игру досрочно?')) {
+                gameRef.update({ state: 'finished' });
+            }
         }
-    });
+    }
     
-    // Кнопка "Новая игра"
-    newGameBtn.addEventListener('click', function() {
+    function handleNewGame() {
+        console.log('Нажата кнопка "Новая игра"');
         location.reload();
-    });
+    }
     
-    // Кнопка копирования ссылки
-    copyLinkBtn.addEventListener('click', function() {
+    function handleCopyLink() {
         const link = gameLinkBox.textContent;
         if (link && link !== '...') {
             navigator.clipboard.writeText(link).then(() => {
-                alert('Ссылка скопирована!');
+                alert('Ссылка скопирована в буфер обмена!');
+            }).catch(err => {
+                console.error('Ошибка копирования:', err);
+                alert('Не удалось скопировать ссылку');
             });
         }
-    });
+    }
+    
+    // Запуск инициализации
+    init();
 });
