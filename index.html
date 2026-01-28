@@ -11,10 +11,395 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 </head>
 <body>
-    <div id="app">
-        <!-- Интерфейс загрузится через JavaScript -->
+    <!-- Главная страница -->
+    <div id="main-page" style="display: block;">
+        <div class="role-page">
+            <div class="container">
+                <header class="main-header">
+                    <div class="logo">
+                        <i class="fas fa-brain"></i>
+                        <h1>Brain Quiz</h1>
+                        <p class="tagline">Интерактивный тренажер для класса</p>
+                    </div>
+                </header>
+
+                <main class="main-content">
+                    <div class="role-selector">
+                        <!-- Карточка учителя -->
+                        <div class="role-card teacher-card">
+                            <div class="role-icon">
+                                <i class="fas fa-chalkboard-teacher"></i>
+                            </div>
+                            <div class="role-info">
+                                <h2>Режим учителя</h2>
+                                <p class="role-desc">Для смарт-доски или компьютера</p>
+                                <ul class="role-features">
+                                    <li><i class="fas fa-check"></i> Создание игр</li>
+                                    <li><i class="fas fa-check"></i> Управление вопросами</li>
+                                    <li><i class="fas fa-check"></i> Показ статистики</li>
+                                </ul>
+                            </div>
+                            <button class="role-btn" onclick="showTeacher()">
+                                <i class="fas fa-play"></i> Запустить как учитель
+                            </button>
+                        </div>
+
+                        <!-- Карточка ученика -->
+                        <div class="role-card student-card">
+                            <div class="role-icon">
+                                <i class="fas fa-mobile-alt"></i>
+                            </div>
+                            <div class="role-info">
+                                <h2>Режим ученика</h2>
+                                <p class="role-desc">Для телефонов и планшетов</p>
+                                <ul class="role-features">
+                                    <li><i class="fas fa-check"></i> Цветные кнопки ответов</li>
+                                    <li><i class="fas fa-check"></i> Подсчет очков</li>
+                                    <li><i class="fas fa-check"></i> Рейтинг игроков</li>
+                                </ul>
+                            </div>
+                            <button class="role-btn" onclick="showStudent()">
+                                <i class="fas fa-play"></i> Подключиться как ученик
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="instructions">
+                        <h3><i class="fas fa-info-circle"></i> Как работает:</h3>
+                        <div class="steps">
+                            <div class="step">
+                                <div class="step-num">1</div>
+                                <p><strong>Учитель</strong> запускает игру на доске</p>
+                            </div>
+                            <div class="step">
+                                <div class="step-num">2</div>
+                                <p><strong>Ученики</strong> заходят на сайт с телефонов</p>
+                            </div>
+                            <div class="step">
+                                <div class="step-num">3</div>
+                                <p><strong>На доске</strong> показывается вопрос</p>
+                            </div>
+                            <div class="step">
+                                <div class="step-num">4</div>
+                                <p><strong>На телефонах</strong> — кнопки ответов</p>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                <footer class="main-footer">
+                    <p><i class="fas fa-bolt"></i> Все в одной комнате • Автоматический запуск • Не нужны коды</p>
+                </footer>
+            </div>
+        </div>
     </div>
 
+    <!-- Страница учителя -->
+    <div id="teacher-page" style="display: none;">
+        <!-- Шапка учителя -->
+        <div class="teacher-header">
+            <div class="container">
+                <div class="logo">
+                    <button onclick="showMain()" class="back-btn">
+                        <i class="fas fa-arrow-left"></i> На главную
+                    </button>
+                    <i class="fas fa-chalkboard-teacher"></i>
+                    <div>
+                        <h1>Brain Quiz - Режим учителя</h1>
+                        <p class="subtitle">Вопросы на доске, ответы на телефонах</p>
+                    </div>
+                </div>
+                <div class="teacher-stats">
+                    <div class="stat-item" id="player-count-display">
+                        <i class="fas fa-users"></i>
+                        <span>Игроков: <strong id="player-count">0</strong></span>
+                    </div>
+                    <div class="stat-item" id="game-status-display">
+                        <i class="fas fa-gamepad"></i>
+                        <span>Статус: <strong id="game-status">Неактивно</strong></span>
+                    </div>
+                    <div class="stat-item" id="question-number-display">
+                        <i class="fas fa-question-circle"></i>
+                        <span>Вопрос: <strong id="question-number">-/-</strong></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Основной контент учителя -->
+        <div class="teacher-content">
+            <!-- Левая панель управления -->
+            <div class="teacher-sidebar">
+                <!-- Создание игры -->
+                <div class="control-card" id="create-game-card">
+                    <h3><i class="fas fa-plus-circle"></i> Создать игру</h3>
+                    <div class="form-group">
+                        <label for="game-name">Название игры:</label>
+                        <input type="text" id="game-name" class="form-input" 
+                               value="Подготовка к ОГЭ" placeholder="Введите название">
+                    </div>
+                    <div class="form-group">
+                        <label>Количество вопросов: <span id="q-count">10</span></label>
+                        <input type="range" id="question-count" min="5" max="20" value="10" 
+                               class="slider">
+                    </div>
+                    <button class="control-btn btn-primary" id="create-game-btn">
+                        <i class="fas fa-rocket"></i> Создать игру
+                    </button>
+                </div>
+                
+                <!-- Управление игрой -->
+                <div class="control-card hidden" id="game-controls">
+                    <h3><i class="fas fa-cogs"></i> Управление игрой</h3>
+                    <button class="control-btn btn-success" id="start-game-btn">
+                        <i class="fas fa-play"></i> Начать игру
+                    </button>
+                    <button class="control-btn btn-secondary" id="next-question-btn">
+                        <i class="fas fa-forward"></i> Следующий вопрос
+                    </button>
+                    <button class="control-btn btn-danger" id="end-game-btn">
+                        <i class="fas fa-stop"></i> Завершить игру
+                    </button>
+                </div>
+                
+                <!-- Список игроков -->
+                <div class="players-list" id="players-list">
+                    <h3><i class="fas fa-users"></i> Игроки (<span id="players-count">0</span>)</h3>
+                    <div id="players-container">
+                        <p class="empty">Игроки появятся здесь</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Правая панель - отображение -->
+            <div class="teacher-display">
+                <!-- Экран приветствия -->
+                <div class="screen active" id="teacher-welcome-screen">
+                    <div class="welcome-content">
+                        <div class="welcome-icon">
+                            <i class="fas fa-chalkboard-teacher"></i>
+                        </div>
+                        <h2>Режим для смарт-доски</h2>
+                        <p>Создайте игру и покажите вопросы классу</p>
+                        <div class="teacher-steps">
+                            <div class="teacher-step">
+                                <div class="step-number">1</div>
+                                <h3>Создайте игру</h3>
+                                <p>Заполните форму слева</p>
+                            </div>
+                            <div class="teacher-step">
+                                <div class="step-number">2</div>
+                                <h3>Подключите учеников</h3>
+                                <p>Они заходят на сайт с телефонов</p>
+                            </div>
+                            <div class="teacher-step">
+                                <div class="step-number">3</div>
+                                <h3>Начните игру</h3>
+                                <p>Нажмите "Начать игру"</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Экран ожидания -->
+                <div class="screen hidden" id="teacher-waiting-screen">
+                    <div class="waiting-content">
+                        <div class="waiting-icon">
+                            <i class="fas fa-hourglass-half"></i>
+                        </div>
+                        <h2>Ожидание игроков</h2>
+                        <p>Попросите учеников подключиться</p>
+                        
+                        <div class="players-waiting">
+                            <i class="fas fa-users"></i>
+                            <span><strong id="big-player-count">0</strong> игроков в комнате</span>
+                        </div>
+                        
+                        <div class="instructions">
+                            <h4><i class="fas fa-mobile-alt"></i> Как подключиться ученикам:</h4>
+                            <ul>
+                                <li>Откройте сайт на телефоне</li>
+                                <li>Выберите "Режим ученика"</li>
+                                <li>Введите своё имя</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Экран вопроса -->
+                <div class="screen hidden" id="teacher-question-screen">
+                    <div class="question-header">
+                        <div class="question-meta">
+                            <span class="category" id="question-category">Устное собеседование</span>
+                            <div class="timer-box">
+                                <i class="fas fa-clock"></i>
+                                <span id="question-timer">30</span>
+                            </div>
+                        </div>
+                        <div class="question-number">
+                            Вопрос <span id="current-question">1</span> из <span id="total-questions">10</span>
+                        </div>
+                    </div>
+                    
+                    <div class="question-text-large" id="question-text">
+                        Вопрос появится после начала игры
+                    </div>
+                </div>
+                
+                <!-- Экран результатов -->
+                <div class="screen hidden" id="teacher-results-screen">
+                    <div class="results-header">
+                        <h2><i class="fas fa-chart-bar"></i> Результаты ответа</h2>
+                    </div>
+                    
+                    <div class="stats-container" id="stats-container">
+                        <!-- Статистика появится здесь -->
+                    </div>
+                    
+                    <div class="quick-leaderboard">
+                        <h3><i class="fas fa-trophy"></i> Текущие лидеры</h3>
+                        <div id="quick-leaderboard">
+                            <!-- Лидерборд появится здесь -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Финальный экран -->
+                <div class="screen hidden" id="teacher-final-screen">
+                    <div class="final-content">
+                        <div class="trophy">
+                            <i class="fas fa-trophy"></i>
+                        </div>
+                        <h2>Игра завершена!</h2>
+                        
+                        <div class="final-leaderboard" id="final-leaderboard">
+                            <!-- Финальный лидерборд появится здесь -->
+                        </div>
+                        
+                        <button class="btn btn-primary" onclick="showMain()">
+                            <i class="fas fa-plus"></i> Новая игра
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Страница ученика -->
+    <div id="student-page" style="display: none;">
+        <div class="student-page">
+            <div class="student-container">
+                <div class="student-header">
+                    <i class="fas fa-mobile-alt"></i>
+                    <h1>Brain Quiz</h1>
+                    <p>Режим ученика</p>
+                </div>
+                
+                <div class="student-content">
+                    <!-- Форма имени -->
+                    <div class="name-form" id="name-form">
+                        <h3>Как тебя зовут?</h3>
+                        <input type="text" id="student-name" class="name-input" 
+                               placeholder="Введите ваше имя" maxlength="20" autofocus>
+                        <button class="control-btn btn-primary" id="join-game-btn">
+                            <i class="fas fa-sign-in-alt"></i> Присоединиться к игре
+                        </button>
+                    </div>
+                    
+                    <!-- Экран ожидания -->
+                    <div class="waiting-screen-student hidden" id="student-waiting">
+                        <div class="waiting-icon-student">
+                            <i class="fas fa-hourglass-half"></i>
+                        </div>
+                        <div class="waiting-message">
+                            <h2>Ожидание начала игры...</h2>
+                            <p id="student-waiting-text">Учитель скоро запустит вопросы</p>
+                        </div>
+                        <div class="loading-dots">
+                            <div class="dot"></div>
+                            <div class="dot"></div>
+                            <div class="dot"></div>
+                        </div>
+                        <p class="student-name-display">Игрок: <span id="display-student-name"></span></p>
+                    </div>
+                    
+                    <!-- Экран вопроса -->
+                    <div class="hidden" id="student-question">
+                        <div class="student-header">
+                            <div class="timer-circle" id="student-timer">30</div>
+                            <p>Вопрос <span id="student-question-number">1</span>/<span id="student-total-questions">10</span></p>
+                        </div>
+                        
+                        <div class="student-content">
+                            <div style="text-align: center; margin-bottom: 30px;">
+                                <h3 style="font-size: 20px; opacity: 0.9; margin-bottom: 10px;" id="student-category">Категория</h3>
+                                <p style="font-size: 18px; opacity: 0.8;">Выберите правильный ответ:</p>
+                            </div>
+                            
+                            <div class="answer-buttons" id="answer-buttons">
+                                <!-- Кнопки ответов появятся здесь -->
+                            </div>
+                            
+                            <div style="margin-top: 20px; text-align: center; opacity: 0.7;">
+                                <i class="fas fa-clock"></i> Время на ответ: <span id="student-time-left">30</span> сек
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Экран результатов -->
+                    <div class="result-screen hidden" id="student-result">
+                        <div class="result-icon" id="result-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <h2 id="result-title">Правильно! 🎉</h2>
+                        <p id="result-message">Отличный ответ!</p>
+                        
+                        <div class="result-points">
+                            <h3>Получено очков:</h3>
+                            <div class="points-value" id="result-points">+100</div>
+                        </div>
+                        
+                        <div style="margin-top: 30px; opacity: 0.8;">
+                            <i class="fas fa-hourglass-half"></i> Следующий вопрос скоро...
+                        </div>
+                    </div>
+                    
+                    <!-- Финальные результаты -->
+                    <div class="hidden" id="student-final">
+                        <div class="student-header">
+                            <i class="fas fa-trophy"></i>
+                            <h1>Игра завершена!</h1>
+                        </div>
+                        
+                        <div class="student-content">
+                            <div style="text-align: center; margin-bottom: 30px;">
+                                <h2>Ваш результат</h2>
+                                <div style="font-size: 48px; font-weight: 800; color: #fbbf24; margin: 20px 0;" id="final-score">
+                                    0 очков
+                                </div>
+                            </div>
+                            
+                            <div style="width: 100%;">
+                                <h3 style="margin-bottom: 15px;"><i class="fas fa-crown"></i> Рейтинг игроков:</h3>
+                                <div id="final-leaderboard-container">
+                                    <!-- Рейтинг появится здесь -->
+                                </div>
+                            </div>
+                            
+                            <div style="margin-top: 30px; text-align: center;">
+                                <button onclick="showMain()" class="control-btn btn-primary" 
+                                        style="margin-top: 20px; width: 100%;">
+                                    <i class="fas fa-redo"></i> Играть снова
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Подключаем скрипты -->
     <script src="firebase-config.js"></script>
     <script src="quiz-data.js"></script>
     <script src="app.js"></script>
