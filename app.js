@@ -7,8 +7,41 @@ let userName = '';
 let userRole = '';
 let currentTimer = null;
 let currentQuestionIndex = 0;
+let playerId = '';
 
-// ===== ОСНОВНАЯ ИНИЦИАЛИЗАЦИЯ =====
+// ===== ФУНКЦИИ ПЕРЕКЛЮЧЕНИЯ СТРАНИЦ =====
+function showMain() {
+    document.getElementById('main-page').style.display = 'block';
+    document.getElementById('teacher-page').style.display = 'none';
+    document.getElementById('student-page').style.display = 'none';
+    
+    // Сбрасываем состояние
+    currentGame = null;
+    userName = '';
+    userRole = '';
+    playerId = '';
+    clearInterval(currentTimer);
+}
+
+function showTeacher() {
+    document.getElementById('main-page').style.display = 'none';
+    document.getElementById('teacher-page').style.display = 'block';
+    document.getElementById('student-page').style.display = 'none';
+    
+    userRole = 'teacher';
+    initTeacherMode();
+}
+
+function showStudent() {
+    document.getElementById('main-page').style.display = 'none';
+    document.getElementById('teacher-page').style.display = 'none';
+    document.getElementById('student-page').style.display = 'block';
+    
+    userRole = 'student';
+    initStudentMode();
+}
+
+// ===== ИНИЦИАЛИЗАЦИЯ =====
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Brain Quiz загружен');
     
@@ -16,322 +49,49 @@ document.addEventListener('DOMContentLoaded', function() {
         firebase.initializeApp(firebaseConfig);
         database = firebase.database();
         console.log('✅ Firebase подключен');
-        
-        showMainPage();
     } catch (error) {
         console.error('❌ Ошибка Firebase:', error);
-        showError('Не удалось подключиться к серверу');
+        alert('Не удалось подключиться к серверу');
     }
 });
 
-// ===== ГЛАВНАЯ СТРАНИЦА =====
-function showMainPage() {
-    const app = document.getElementById('app');
-    app.innerHTML = `
-        <div class="role-page">
-            <div class="container">
-                <header class="main-header">
-                    <div class="logo">
-                        <i class="fas fa-brain"></i>
-                        <h1>Brain Quiz</h1>
-                        <p class="tagline">Интерактивный тренажер для класса</p>
-                    </div>
-                </header>
-
-                <main class="main-content">
-                    <div class="role-selector">
-                        <div class="role-card teacher-card">
-                            <div class="role-icon">
-                                <i class="fas fa-chalkboard-teacher"></i>
-                            </div>
-                            <div class="role-info">
-                                <h2>Режим учителя</h2>
-                                <p class="role-desc">Для смарт-доски или компьютера</p>
-                                <ul class="role-features">
-                                    <li><i class="fas fa-check"></i> Создание игр</li>
-                                    <li><i class="fas fa-check"></i> Управление вопросами</li>
-                                    <li><i class="fas fa-check"></i> Показ статистики</li>
-                                </ul>
-                            </div>
-                            <button class="role-btn" id="teacher-btn">
-                                <i class="fas fa-play"></i> Запустить как учитель
-                            </button>
-                        </div>
-
-                        <div class="role-card student-card">
-                            <div class="role-icon">
-                                <i class="fas fa-mobile-alt"></i>
-                            </div>
-                            <div class="role-info">
-                                <h2>Режим ученика</h2>
-                                <p class="role-desc">Для телефонов и планшетов</p>
-                                <ul class="role-features">
-                                    <li><i class="fas fa-check"></i> Цветные кнопки ответов</li>
-                                    <li><i class="fas fa-check"></i> Подсчет очков</li>
-                                    <li><i class="fas fa-check"></i> Рейтинг игроков</li>
-                                </ul>
-                            </div>
-                            <button class="role-btn" id="student-btn">
-                                <i class="fas fa-play"></i> Подключиться как ученик
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="instructions">
-                        <h3><i class="fas fa-info-circle"></i> Как работает:</h3>
-                        <div class="steps">
-                            <div class="step">
-                                <div class="step-num">1</div>
-                                <p><strong>Учитель</strong> запускает игру на доске</p>
-                            </div>
-                            <div class="step">
-                                <div class="step-num">2</div>
-                                <p><strong>Ученики</strong> заходят на сайт с телефонов</p>
-                            </div>
-                            <div class="step">
-                                <div class="step-num">3</div>
-                                <p><strong>На доске</strong> показывается вопрос</p>
-                            </div>
-                            <div class="step">
-                                <div class="step-num">4</div>
-                                <p><strong>На телефонах</strong> — кнопки ответов</p>
-                            </div>
-                        </div>
-                    </div>
-                </main>
-
-                <footer class="main-footer">
-                    <p><i class="fas fa-bolt"></i> Все в одной комнате • Автоматический запуск • Не нужны коды</p>
-                </footer>
-            </div>
-        </div>
-    `;
-    
-    // Привязываем обработчики кнопок
-    setTimeout(() => {
-        document.getElementById('teacher-btn').addEventListener('click', function() {
-            userRole = 'teacher';
-            showTeacherMode();
-        });
-        
-        document.getElementById('student-btn').addEventListener('click', function() {
-            userRole = 'student';
-            showStudentNameInput();
-        });
-        
-        console.log('✅ Кнопки главной страницы готовы');
-    }, 100);
-}
-
 // ===== РЕЖИМ УЧИТЕЛЯ =====
-function showTeacherMode() {
-    const app = document.getElementById('app');
-    app.innerHTML = `
-        <div class="teacher-header">
-            <div class="container">
-                <div class="logo">
-                    <button onclick="showMainPage()" class="back-btn">
-                        <i class="fas fa-arrow-left"></i> На главную
-                    </button>
-                    <i class="fas fa-chalkboard-teacher"></i>
-                    <h1>Brain Quiz - Режим учителя</h1>
-                    <p class="subtitle">Вопросы на доске, ответы на телефонах</p>
-                </div>
-                <div class="teacher-stats">
-                    <div class="stat-item" id="player-count-display">
-                        <i class="fas fa-users"></i>
-                        <span>Игроков: <strong>0</strong></span>
-                    </div>
-                    <div class="stat-item" id="game-status-display">
-                        <i class="fas fa-gamepad"></i>
-                        <span>Статус: <strong>Неактивно</strong></span>
-                    </div>
-                    <div class="stat-item" id="question-number-display">
-                        <i class="fas fa-question-circle"></i>
-                        <span>Вопрос: <strong>-/-</strong></span>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="teacher-content">
-            <div class="teacher-sidebar">
-                <div class="control-card" id="create-game-card">
-                    <h3><i class="fas fa-plus-circle"></i> Создать игру</h3>
-                    <div class="form-group">
-                        <label for="game-name">Название игры:</label>
-                        <input type="text" id="game-name" class="form-input" 
-                               value="Подготовка к ОГЭ" placeholder="Введите название">
-                    </div>
-                    <div class="form-group">
-                        <label>Количество вопросов: <span id="q-count">10</span></label>
-                        <input type="range" id="question-count" min="5" max="20" value="10" 
-                               class="slider">
-                    </div>
-                    <button class="control-btn btn-primary" id="create-game-btn">
-                        <i class="fas fa-rocket"></i> Создать игру
-                    </button>
-                </div>
-                
-                <div class="control-card hidden" id="game-controls">
-                    <h3><i class="fas fa-cogs"></i> Управление игрой</h3>
-                    <button class="control-btn btn-success" id="start-game-btn">
-                        <i class="fas fa-play"></i> Начать игру
-                    </button>
-                    <button class="control-btn btn-secondary" id="next-question-btn">
-                        <i class="fas fa-forward"></i> Следующий вопрос
-                    </button>
-                    <button class="control-btn btn-danger" id="end-game-btn">
-                        <i class="fas fa-stop"></i> Завершить игру
-                    </button>
-                </div>
-                
-                <div class="players-list" id="players-list">
-                    <h3><i class="fas fa-users"></i> Игроки (<span id="players-count">0</span>)</h3>
-                    <div id="players-container">
-                        <p class="empty">Игроки появятся здесь</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="teacher-display">
-                <div class="screen active" id="welcome-screen">
-                    <div class="welcome-content">
-                        <div class="welcome-icon">
-                            <i class="fas fa-chalkboard-teacher"></i>
-                        </div>
-                        <h2>Режим для смарт-доски</h2>
-                        <p>Создайте игру и покажите вопросы классу</p>
-                        <div class="teacher-steps">
-                            <div class="teacher-step">
-                                <div class="step-number">1</div>
-                                <h3>Создайте игру</h3>
-                                <p>Заполните форму слева</p>
-                            </div>
-                            <div class="teacher-step">
-                                <div class="step-number">2</div>
-                                <h3>Подключите учеников</h3>
-                                <p>Они заходят на сайт с телефонов</p>
-                            </div>
-                            <div class="teacher-step">
-                                <div class="step-number">3</div>
-                                <h3>Начните игру</h3>
-                                <p>Нажмите "Начать игру"</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="screen hidden" id="waiting-screen">
-                    <div class="waiting-content">
-                        <div class="waiting-icon">
-                            <i class="fas fa-hourglass-half"></i>
-                        </div>
-                        <h2>Ожидание игроков</h2>
-                        <p>Попросите учеников подключиться</p>
-                        
-                        <div class="players-waiting">
-                            <i class="fas fa-users"></i>
-                            <span><strong id="big-player-count">0</strong> игроков в комнате</span>
-                        </div>
-                        
-                        <div class="instructions">
-                            <h4><i class="fas fa-mobile-alt"></i> Как подключиться ученикам:</h4>
-                            <ul>
-                                <li>Откройте сайт на телефоне</li>
-                                <li>Выберите "Режим ученика"</li>
-                                <li>Введите своё имя</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="screen hidden" id="question-screen">
-                    <div class="question-header">
-                        <div class="question-meta">
-                            <span class="category" id="question-category">Устное собеседование</span>
-                            <div class="timer-box">
-                                <i class="fas fa-clock"></i>
-                                <span id="question-timer">30</span>
-                            </div>
-                        </div>
-                        <div class="question-number">
-                            Вопрос <span id="current-question">1</span> из <span id="total-questions">10</span>
-                        </div>
-                    </div>
-                    
-                    <div class="question-text-large" id="question-text">
-                        Вопрос появится после начала игры
-                    </div>
-                </div>
-                
-                <div class="screen hidden" id="results-screen">
-                    <div class="results-header">
-                        <h2><i class="fas fa-chart-bar"></i> Результаты ответа</h2>
-                    </div>
-                    
-                    <div class="stats-container" id="stats-container">
-                        <!-- Статистика появится здесь -->
-                    </div>
-                    
-                    <div class="quick-leaderboard">
-                        <h3><i class="fas fa-trophy"></i> Текущие лидеры</h3>
-                        <div id="quick-leaderboard">
-                            <!-- Лидерборд появится здесь -->
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="screen hidden" id="final-screen">
-                    <div class="final-content">
-                        <div class="trophy">
-                            <i class="fas fa-trophy"></i>
-                        </div>
-                        <h2>Игра завершена!</h2>
-                        
-                        <div class="final-leaderboard" id="final-leaderboard">
-                            <!-- Финальный лидерборд появится здесь -->
-                        </div>
-                        
-                        <button class="btn btn-primary" id="new-game-btn">
-                            <i class="fas fa-plus"></i> Новая игра
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
+function initTeacherMode() {
+    console.log('Инициализация режима учителя');
     
-    setupTeacherHandlers();
+    // Привязываем обработчики
+    setTimeout(() => {
+        // Слайдер количества вопросов
+        const qCountSlider = document.getElementById('question-count');
+        const qCountDisplay = document.getElementById('q-count');
+        if (qCountSlider && qCountDisplay) {
+            qCountSlider.addEventListener('input', () => {
+                qCountDisplay.textContent = qCountSlider.value;
+            });
+        }
+        
+        // Кнопка создания игры
+        const createBtn = document.getElementById('create-game-btn');
+        if (createBtn) {
+            createBtn.addEventListener('click', createGame);
+        }
+        
+        // Кнопки управления игрой
+        const startBtn = document.getElementById('start-game-btn');
+        if (startBtn) startBtn.addEventListener('click', startGame);
+        
+        const nextBtn = document.getElementById('next-question-btn');
+        if (nextBtn) nextBtn.addEventListener('click', nextQuestion);
+        
+        const endBtn = document.getElementById('end-game-btn');
+        if (endBtn) endBtn.addEventListener('click', endGame);
+        
+        console.log('✅ Обработчики учителя привязаны');
+    }, 100);
+    
     checkActiveGame();
 }
 
-function setupTeacherHandlers() {
-    // Слайдер количества вопросов
-    const qCountSlider = document.getElementById('question-count');
-    const qCountDisplay = document.getElementById('q-count');
-    if (qCountSlider && qCountDisplay) {
-        qCountSlider.addEventListener('input', () => {
-            qCountDisplay.textContent = qCountSlider.value;
-        });
-    }
-    
-    // Кнопка создания игры
-    document.getElementById('create-game-btn').addEventListener('click', createGame);
-    
-    // Кнопки управления игрой
-    document.getElementById('start-game-btn').addEventListener('click', startGame);
-    document.getElementById('next-question-btn').addEventListener('click', nextQuestion);
-    document.getElementById('end-game-btn').addEventListener('click', endGame);
-    
-    // Кнопка новой игры
-    const newGameBtn = document.getElementById('new-game-btn');
-    if (newGameBtn) {
-        newGameBtn.addEventListener('click', () => location.reload());
-    }
-}
-
-// ===== ФУНКЦИИ УЧИТЕЛЯ =====
 function createGame() {
     console.log('Создание игры...');
     
@@ -379,6 +139,7 @@ function createGame() {
         .then(() => {
             console.log('✅ Игра создана:', gameCode);
             
+            // Показываем экран ожидания
             showTeacherScreen('waiting');
             
             const gameControls = document.getElementById('game-controls');
@@ -392,7 +153,9 @@ function createGame() {
             playersRef = gameRef.child('players');
             playersRef.on('value', updatePlayersList);
             
-            gameRef.on('value', handleGameState);
+            gameRef.on('value', handleTeacherGameState);
+            
+            alert(`Игра "${gameName}" создана!`);
             
         })
         .catch(error => {
@@ -419,7 +182,7 @@ function connectToGame(gameCode) {
     
     gameRef.once('value').then(snapshot => {
         if (!snapshot.exists()) {
-            showError('Игра не найдена');
+            alert('Игра не найдена');
             return;
         }
         
@@ -433,15 +196,95 @@ function connectToGame(gameCode) {
         if (createGameCard) createGameCard.classList.add('hidden');
         
         playersRef.on('value', updatePlayersList);
-        gameRef.on('value', handleGameState);
+        gameRef.on('value', handleTeacherGameState);
         
     }).catch(error => {
         console.error('❌ Ошибка подключения:', error);
-        showError('Не удалось подключиться к игре');
+        alert('Не удалось подключиться к игре');
     });
 }
 
-function handleGameState(snapshot) {
+function showTeacherScreen(screenName) {
+    const screens = {
+        'welcome': 'teacher-welcome-screen',
+        'waiting': 'teacher-waiting-screen',
+        'question': 'teacher-question-screen',
+        'results': 'teacher-results-screen',
+        'final': 'teacher-final-screen'
+    };
+    
+    // Скрываем все экраны
+    Object.values(screens).forEach(screenId => {
+        const el = document.getElementById(screenId);
+        if (el) {
+            el.classList.remove('active');
+            el.classList.add('hidden');
+        }
+    });
+    
+    // Показываем нужный экран
+    const targetScreen = screens[screenName];
+    if (targetScreen) {
+        const el = document.getElementById(targetScreen);
+        if (el) {
+            el.classList.remove('hidden');
+            el.classList.add('active');
+        }
+    }
+}
+
+function updateGameStatus(status) {
+    const el = document.getElementById('game-status');
+    if (el) el.textContent = status;
+}
+
+function updatePlayerCount(count) {
+    const el = document.getElementById('player-count');
+    const bigEl = document.getElementById('big-player-count');
+    if (el) el.textContent = count;
+    if (bigEl) bigEl.textContent = count;
+}
+
+function updateQuestionNumber(current, total) {
+    const el = document.getElementById('question-number');
+    if (el) el.textContent = `${current}/${total}`;
+}
+
+function updatePlayersList(snapshot) {
+    const players = snapshot.val() || {};
+    const count = Object.keys(players).length;
+    
+    updatePlayerCount(count);
+    
+    const container = document.getElementById('players-container');
+    const countElement = document.getElementById('players-count');
+    
+    if (!container) return;
+    
+    if (count === 0) {
+        container.innerHTML = '<p class="empty">Игроки появятся здесь</p>';
+        if (countElement) countElement.textContent = '0';
+        return;
+    }
+    
+    let html = '';
+    Object.values(players).forEach(player => {
+        html += `
+            <div class="player-item">
+                <div class="player-avatar">${player.name?.charAt(0) || '?'}</div>
+                <div class="player-info">
+                    <div class="player-name">${player.name || 'Игрок'}</div>
+                    <div class="player-score">${player.score || 0} очков</div>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+    if (countElement) countElement.textContent = count;
+}
+
+function handleTeacherGameState(snapshot) {
     const gameData = snapshot.val();
     if (!gameData) return;
     
@@ -479,87 +322,6 @@ function handleGameState(snapshot) {
             showFinalLeaderboard();
             break;
     }
-}
-
-function showTeacherScreen(screenName) {
-    const screens = ['welcome-screen', 'waiting-screen', 'question-screen', 'results-screen', 'final-screen'];
-    screens.forEach(screen => {
-        const el = document.getElementById(screen);
-        if (el) el.classList.remove('active', 'hidden');
-    });
-    
-    screens.forEach(screen => {
-        const el = document.getElementById(screen);
-        if (el) {
-            if (screen === `${screenName}-screen`) {
-                el.classList.add('active');
-                el.classList.remove('hidden');
-            } else {
-                el.classList.remove('active');
-                el.classList.add('hidden');
-            }
-        }
-    });
-}
-
-function updateGameStatus(status) {
-    const el = document.getElementById('game-status-display');
-    if (el) {
-        const strong = el.querySelector('strong');
-        if (strong) strong.textContent = status;
-    }
-}
-
-function updatePlayerCount(count) {
-    const el = document.getElementById('player-count-display');
-    const bigEl = document.getElementById('big-player-count');
-    if (el) {
-        const strong = el.querySelector('strong');
-        if (strong) strong.textContent = count;
-    }
-    if (bigEl) bigEl.textContent = count;
-}
-
-function updateQuestionNumber(current, total) {
-    const el = document.getElementById('question-number-display');
-    if (el) {
-        const strong = el.querySelector('strong');
-        if (strong) strong.textContent = `${current}/${total}`;
-    }
-}
-
-function updatePlayersList(snapshot) {
-    const players = snapshot.val() || {};
-    const count = Object.keys(players).length;
-    
-    updatePlayerCount(count);
-    
-    const container = document.getElementById('players-container');
-    const countElement = document.getElementById('players-count');
-    
-    if (!container) return;
-    
-    if (count === 0) {
-        container.innerHTML = '<p class="empty">Игроки появятся здесь</p>';
-        if (countElement) countElement.textContent = '0';
-        return;
-    }
-    
-    let html = '';
-    Object.values(players).forEach(player => {
-        html += `
-            <div class="player-item">
-                <div class="player-avatar">${player.name?.charAt(0) || '?'}</div>
-                <div class="player-info">
-                    <div class="player-name">${player.name || 'Игрок'}</div>
-                    <div class="player-score">${player.score || 0} очков</div>
-                </div>
-            </div>
-        `;
-    });
-    
-    container.innerHTML = html;
-    if (countElement) countElement.textContent = count;
 }
 
 function loadQuestion(questionIndex) {
@@ -778,43 +540,28 @@ function endGame() {
 }
 
 // ===== РЕЖИМ УЧЕНИКА =====
-function showStudentNameInput() {
-    const app = document.getElementById('app');
-    app.innerHTML = `
-        <div class="student-page">
-            <div class="student-container">
-                <div class="student-header">
-                    <i class="fas fa-mobile-alt"></i>
-                    <h1>Brain Quiz</h1>
-                    <p>Режим ученика</p>
-                </div>
-                
-                <div class="student-content">
-                    <div class="name-form">
-                        <h3>Как тебя зовут?</h3>
-                        <input type="text" id="student-name" class="name-input" 
-                               placeholder="Введите ваше имя" maxlength="20" autofocus>
-                        <button class="control-btn btn-primary" id="join-game-btn">
-                            <i class="fas fa-sign-in-alt"></i> Присоединиться к игре
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
+function initStudentMode() {
+    console.log('Инициализация режима ученика');
     
-    const joinBtn = document.getElementById('join-game-btn');
-    const nameInput = document.getElementById('student-name');
-    
-    joinBtn.addEventListener('click', joinGame);
-    
-    nameInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            joinGame();
+    // Привязываем обработчики формы имени
+    setTimeout(() => {
+        const joinBtn = document.getElementById('join-game-btn');
+        const nameInput = document.getElementById('student-name');
+        
+        if (joinBtn && nameInput) {
+            joinBtn.addEventListener('click', joinGame);
+            
+            nameInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    joinGame();
+                }
+            });
+            
+            nameInput.focus();
         }
-    });
-    
-    nameInput.focus();
+        
+        console.log('✅ Обработчики ученика привязаны');
+    }, 100);
 }
 
 function joinGame() {
@@ -828,6 +575,20 @@ function joinGame() {
     }
     
     console.log('Имя ученика:', userName);
+    
+    // Показываем имя ученика
+    const displayName = document.getElementById('display-student-name');
+    if (displayName) {
+        displayName.textContent = userName;
+    }
+    
+    // Скрываем форму, показываем ожидание
+    const nameForm = document.getElementById('name-form');
+    const waitingScreen = document.getElementById('student-waiting');
+    
+    if (nameForm) nameForm.classList.add('hidden');
+    if (waitingScreen) waitingScreen.classList.remove('hidden');
+    
     findActiveGame();
 }
 
@@ -840,11 +601,11 @@ function findActiveGame() {
             console.log('✅ Найдена игра:', gameCode);
             joinAsStudent(gameCode);
         } else {
-            showError('Нет активной игры. Попросите учителя создать игру.');
+            showStudentError('Нет активной игры. Попросите учителя создать игру.');
         }
     }).catch(error => {
         console.error('❌ Ошибка поиска игры:', error);
-        showError('Ошибка подключения к серверу');
+        showStudentError('Ошибка подключения к серверу');
     });
 }
 
@@ -855,7 +616,7 @@ function joinAsStudent(gameCode) {
     gameRef = database.ref(`games/${gameCode}`);
     playersRef = gameRef.child('players');
     
-    const playerId = 'player_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    playerId = 'player_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     
     playersRef.child(playerId).set({
         id: playerId,
@@ -866,48 +627,14 @@ function joinAsStudent(gameCode) {
     }).then(() => {
         console.log('✅ Ученик подключен:', userName);
         
-        showStudentWaiting();
-        
         gameRef.on('value', handleStudentGameState);
         
         localStorage.setItem('playerId', playerId);
         
     }).catch(error => {
         console.error('❌ Ошибка подключения:', error);
-        showError('Не удалось подключиться к игре');
+        showStudentError('Не удалось подключиться к игре');
     });
-}
-
-function showStudentWaiting() {
-    const app = document.getElementById('app');
-    app.innerHTML = `
-        <div class="student-page">
-            <div class="student-container">
-                <div class="student-header">
-                    <i class="fas fa-mobile-alt"></i>
-                    <h1>Brain Quiz</h1>
-                    <p>Игрок: ${userName}</p>
-                </div>
-                
-                <div class="student-content">
-                    <div class="waiting-screen-student">
-                        <div class="waiting-icon-student">
-                            <i class="fas fa-hourglass-half"></i>
-                        </div>
-                        <div class="waiting-message">
-                            <h2>Ожидание начала игры...</h2>
-                            <p>Учитель скоро запустит вопросы</p>
-                        </div>
-                        <div class="loading-dots">
-                            <div class="dot"></div>
-                            <div class="dot"></div>
-                            <div class="dot"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
 }
 
 function handleStudentGameState(snapshot) {
@@ -917,63 +644,91 @@ function handleStudentGameState(snapshot) {
     const state = gameData.state;
     currentQuestionIndex = gameData.currentQuestion || 0;
     
+    // Скрываем все экраны ученика
+    hideAllStudentScreens();
+    
     switch(state) {
         case 'waiting':
-            showStudentWaiting();
+            showStudentScreen('waiting');
             break;
             
         case 'question':
-            showStudentQuestion(gameData, currentQuestionIndex);
+            showStudentScreen('question');
+            loadStudentQuestion(gameData, currentQuestionIndex);
             break;
             
         case 'results':
+            showStudentScreen('result');
             showStudentResults(gameData, currentQuestionIndex);
             break;
             
         case 'finished':
+            showStudentScreen('final');
             showStudentFinalResults(gameData);
             break;
     }
 }
 
-function showStudentQuestion(gameData, questionIndex) {
+function hideAllStudentScreens() {
+    const screens = ['student-waiting', 'student-question', 'student-result', 'student-final'];
+    screens.forEach(screenId => {
+        const el = document.getElementById(screenId);
+        if (el) el.classList.add('hidden');
+    });
+}
+
+function showStudentScreen(screenName) {
+    const screens = {
+        'waiting': 'student-waiting',
+        'question': 'student-question',
+        'result': 'student-result',
+        'final': 'student-final'
+    };
+    
+    hideAllStudentScreens();
+    
+    const targetScreen = screens[screenName];
+    if (targetScreen) {
+        const el = document.getElementById(targetScreen);
+        if (el) {
+            el.classList.remove('hidden');
+        }
+    }
+}
+
+function loadStudentQuestion(gameData, questionIndex) {
     gameRef.child(`questions/${questionIndex}`).once('value').then(snapshot => {
         const question = snapshot.val();
         if (!question) return;
         
-        const app = document.getElementById('app');
-        app.innerHTML = `
-            <div class="student-page">
-                <div class="student-container">
-                    <div class="student-header">
-                        <div class="timer-circle" id="student-timer">${question.time || 30}</div>
-                        <p>Вопрос ${questionIndex + 1}/${gameData.totalQuestions}</p>
-                    </div>
-                    
-                    <div class="student-content">
-                        <div style="text-align: center; margin-bottom: 30px;">
-                            <h3 style="font-size: 20px; opacity: 0.9; margin-bottom: 10px;">${question.category}</h3>
-                            <p style="font-size: 18px; opacity: 0.8;">Выберите правильный ответ:</p>
-                        </div>
-                        
-                        <div class="answer-buttons">
-                            ${question.options.map((option, i) => `
-                                <button class="answer-btn answer-btn-${i + 1}" 
-                                        onclick="submitStudentAnswer(${i}, ${questionIndex})">
-                                    <div class="answer-letter">${String.fromCharCode(65 + i)}</div>
-                                    <div class="answer-text">${option}</div>
-                                </button>
-                            `).join('')}
-                        </div>
-                        
-                        <div style="margin-top: 20px; text-align: center; opacity: 0.7;">
-                            <i class="fas fa-clock"></i> Время на ответ: ${question.time || 30} сек
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
+        // Обновляем информацию о вопросе
+        const categoryEl = document.getElementById('student-category');
+        const questionNumEl = document.getElementById('student-question-number');
+        const totalQuestionsEl = document.getElementById('student-total-questions');
+        const timeLeftEl = document.getElementById('student-time-left');
         
+        if (categoryEl) categoryEl.textContent = question.category;
+        if (questionNumEl) questionNumEl.textContent = questionIndex + 1;
+        if (totalQuestionsEl) totalQuestionsEl.textContent = gameData.totalQuestions;
+        if (timeLeftEl) timeLeftEl.textContent = question.time || 30;
+        
+        // Создаем кнопки ответов
+        const answerButtons = document.getElementById('answer-buttons');
+        if (answerButtons) {
+            let buttonsHtml = '';
+            question.options.forEach((option, i) => {
+                buttonsHtml += `
+                    <button class="answer-btn answer-btn-${i + 1}" 
+                            onclick="submitStudentAnswer(${i}, ${questionIndex})">
+                        <div class="answer-letter">${String.fromCharCode(65 + i)}</div>
+                        <div class="answer-text">${option}</div>
+                    </button>
+                `;
+            });
+            answerButtons.innerHTML = buttonsHtml;
+        }
+        
+        // Запускаем таймер
         startStudentTimer(question.time || 30);
         
     }).catch(error => {
@@ -988,7 +743,6 @@ window.submitStudentAnswer = function(answerIndex, questionIndex) {
 function submitStudentAnswer(answerIndex, questionIndex) {
     console.log('Отправка ответа:', answerIndex, 'на вопрос:', questionIndex);
     
-    const playerId = localStorage.getItem('playerId');
     if (!playerId || !playersRef) {
         console.error('Нет ID игрока или ссылки на игроков');
         return;
@@ -1023,6 +777,8 @@ function startStudentTimer(seconds) {
     const timerEl = document.getElementById('student-timer');
     if (!timerEl) return;
     
+    timerEl.textContent = timeLeft;
+    
     currentTimer = setInterval(() => {
         timeLeft--;
         timerEl.textContent = timeLeft;
@@ -1039,7 +795,7 @@ function startStudentTimer(seconds) {
 }
 
 function showStudentResults(gameData, questionIndex) {
-    const playerId = localStorage.getItem('playerId');
+    if (!playerId) return;
     
     gameRef.child(`questions/${questionIndex}`).once('value').then(qSnapshot => {
         const question = qSnapshot.val();
@@ -1051,105 +807,73 @@ function showStudentResults(gameData, questionIndex) {
             const isCorrect = playerAnswer === question.correct;
             const points = isCorrect ? 100 : 0;
             
+            // Обновляем UI результатов
+            const resultIcon = document.getElementById('result-icon');
+            const resultTitle = document.getElementById('result-title');
+            const resultMessage = document.getElementById('result-message');
+            const resultPoints = document.getElementById('result-points');
+            
+            if (resultIcon) {
+                resultIcon.innerHTML = isCorrect ? '<i class="fas fa-check-circle"></i>' : '<i class="fas fa-times-circle"></i>';
+                resultIcon.parentElement.className = isCorrect ? 'result-screen result-correct' : 'result-screen result-wrong';
+            }
+            
+            if (resultTitle) resultTitle.textContent = isCorrect ? 'Правильно! 🎉' : 'Неправильно 😕';
+            if (resultMessage) resultMessage.textContent = isCorrect ? 'Отличный ответ!' : `Правильный ответ: ${String.fromCharCode(65 + question.correct)}`;
+            if (resultPoints) resultPoints.textContent = isCorrect ? '+100' : '0';
+            
+            // Обновляем счет
             if (isCorrect && player) {
                 const newScore = (player.score || 0) + points;
                 playersRef.child(playerId).update({ score: newScore });
             }
-            
-            const app = document.getElementById('app');
-            app.innerHTML = `
-                <div class="student-page">
-                    <div class="student-container">
-                        <div class="student-content">
-                            <div class="result-screen ${isCorrect ? 'result-correct' : 'result-wrong'}">
-                                <div class="result-icon">
-                                    ${isCorrect ? '<i class="fas fa-check-circle"></i>' : '<i class="fas fa-times-circle"></i>'}
-                                </div>
-                                <h2>${isCorrect ? 'Правильно! 🎉' : 'Неправильно 😕'}</h2>
-                                <p>${isCorrect ? 'Отличный ответ!' : 'Правильный ответ: ' + String.fromCharCode(65 + question.correct)}</p>
-                                
-                                <div class="result-points">
-                                    <h3>Получено очков:</h3>
-                                    <div class="points-value">${isCorrect ? '+100' : '0'}</div>
-                                </div>
-                                
-                                <div style="margin-top: 30px; opacity: 0.8;">
-                                    <i class="fas fa-hourglass-half"></i> Следующий вопрос скоро...
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
             
         });
     });
 }
 
 function showStudentFinalResults(gameData) {
-    const playerId = localStorage.getItem('playerId');
+    if (!playerId) return;
     
     playersRef.once('value').then(snapshot => {
         const players = snapshot.val() || {};
         const sorted = Object.values(players).sort((a, b) => (b.score || 0) - (a.score || 0));
         
-        const app = document.getElementById('app');
-        app.innerHTML = `
-            <div class="student-page">
-                <div class="student-container">
-                    <div class="student-header">
-                        <i class="fas fa-trophy"></i>
-                        <h1>Игра завершена!</h1>
+        // Показываем итоговый счет
+        const finalScore = document.getElementById('final-score');
+        if (finalScore) {
+            const playerScore = players[playerId]?.score || 0;
+            finalScore.textContent = `${playerScore} очков`;
+        }
+        
+        // Показываем рейтинг
+        const leaderboardContainer = document.getElementById('final-leaderboard-container');
+        if (leaderboardContainer) {
+            let leaderboardHtml = '';
+            sorted.forEach((player, index) => {
+                const isCurrent = player.id === playerId;
+                leaderboardHtml += `
+                    <div class="ranking-item ${isCurrent ? 'current-player' : ''}">
+                        <div class="rank-number">${index + 1}</div>
+                        <div class="player-name-student">${player.name}</div>
+                        <div class="player-score-student">${player.score || 0}</div>
                     </div>
-                    
-                    <div class="student-content">
-                        <div style="text-align: center; margin-bottom: 30px;">
-                            <h2>Ваш результат</h2>
-                            <div style="font-size: 48px; font-weight: 800; color: #fbbf24; margin: 20px 0;">
-                                ${players[playerId]?.score || 0} очков
-                            </div>
-                        </div>
-                        
-                        <div style="width: 100%;">
-                            <h3 style="margin-bottom: 15px;"><i class="fas fa-crown"></i> Рейтинг игроков:</h3>
-                            ${sorted.map((player, index) => `
-                                <div class="ranking-item ${player.id === playerId ? 'current-player' : ''}">
-                                    <div class="rank-number">${index + 1}</div>
-                                    <div class="player-name-student">${player.name}</div>
-                                    <div class="player-score-student">${player.score || 0}</div>
-                                </div>
-                            `).join('')}
-                        </div>
-                        
-                        <div style="margin-top: 30px; text-align: center;">
-                            <button onclick="location.reload()" class="control-btn btn-primary" 
-                                    style="margin-top: 20px; width: 100%;">
-                                <i class="fas fa-redo"></i> Играть снова
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
+                `;
+            });
+            leaderboardContainer.innerHTML = leaderboardHtml;
+        }
+        
     });
 }
 
-// ===== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =====
-function showError(message) {
+function showStudentError(message) {
     alert(message);
-}
-
-function showSuccess(message) {
-    const app = document.getElementById('app');
-    app.innerHTML = `
-        <div style="display: flex; justify-content: center; align-items: center; height: 100vh; background: #10b981; color: white;">
-            <div style="text-align: center; padding: 40px;">
-                <i class="fas fa-check-circle" style="font-size: 64px; margin-bottom: 20px;"></i>
-                <h2 style="margin-bottom: 10px;">${message}</h2>
-                <p>Перенаправление...</p>
-            </div>
-        </div>
-    `;
+    // Возвращаем к форме имени
+    const nameForm = document.getElementById('name-form');
+    const waitingScreen = document.getElementById('student-waiting');
+    
+    if (nameForm) nameForm.classList.remove('hidden');
+    if (waitingScreen) waitingScreen.classList.add('hidden');
 }
 
 // ===== ГОТОВО! =====
