@@ -1,476 +1,457 @@
-// Основная игровая логика Brain Rot Quiz
+// Учительский скрипт
 document.addEventListener('DOMContentLoaded', function() {
-    // Элементы интерфейса
-    const modeScreen = document.getElementById('mode-screen');
-    const gameScreen = document.getElementById('game-screen');
-    const resultsScreen = document.getElementById('results-screen');
-    const leaderboardScreen = document.getElementById('leaderboard-screen');
-    
-    const nameModal = document.getElementById('name-modal');
-    const playerNameInput = document.getElementById('player-name-input');
-    const saveNameBtn = document.getElementById('save-name-btn');
-    
-    // Игровые переменные
+    // Инициализация Firebase
+    let database;
+    let currentGameCode;
+    let gameRef;
+    let playersRef;
+    let questionsRef;
     let currentQuestionIndex = 0;
-    let score = 0;
-    let correctCount = 0;
-    let streak = 0;
-    let bestStreak = 0;
-    let totalTime = 0;
-    let timer;
-    let timeLeft;
-    let playerName = "Мозго-Воин";
-    let selectedTopic = 'all';
+    let gameState = 'waiting';
+    let timerInterval;
     
-    const questionTime = 30; // секунд на вопрос
-    let questions = [];
+    // Инициализация Firebase
+    if (firebase.apps.length === 0) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    database = firebase.database();
     
-    // Инициализация
-    function initGame() {
-        // Загружаем вопросы по выбранной теме
-        questions = getQuestionsByTopic(selectedTopic);
+    // Элементы DOM
+    const createGameModal = document.getElementById('create-game-modal');
+    const createGameBtn = document.getElementById('create-game');
+    const quickStartBtn = document.getElementById('quick-start');
+    const startGameBtn = document.getElementById('start-game');
+    const nextQuestionBtn = document.getElementById('next-question');
+    const endGameBtn = document.getElementById('end-game');
+    const newGameBtn = document.getElementById('new-game');
+    const copyLinkBtn = document.getElementById('copy-link');
+    
+    const gameCodeDisplay = document.getElementById('game-code-display');
+    const gameLinkDisplay = document.getElementById('game-link');
+    const playerCount = document.getElementById('player-count');
+    const gameStatus = document.getElementById('game-status');
+    const playersList = document.getElementById('players-list');
+    
+    const waitingScreen = document.getElementById('waiting-screen');
+    const questionScreen = document.getElementById('question-screen');
+    const resultsScreen = document.getElementById('results-screen');
+    const finalScreen = document.getElementById('final-screen');
+    
+    const displayQuestion = document.getElementById('display-question');
+    const displayOptions = document.getElementById('display-options');
+    const displayTimer = document.getElementById('display-timer');
+    const currentQuestionSpan = document.getElementById('current-question');
+    const totalQuestionsSpan = document.getElementById('total-questions');
+    
+    const questionCountSlider = document.getElementById('question-count');
+    const countValue = document.getElementById('count-value');
+    
+    // Обновление значения слайдера
+    questionCountSlider.addEventListener('input', function() {
+        countValue.textContent = this.value;
+    });
+    
+    // Выбор темы
+    document.querySelectorAll('.topic-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.topic-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+    
+    // Создание игры
+    createGameBtn.addEventListener('click', createNewGame);
+    quickStartBtn.addEventListener('click', function() {
+        document.getElementById('game-name').value = 'Быстрая игра';
+        createNewGame();
+    });
+    
+    function createNewGame() {
+        // Генерация кода игры (4 цифры)
+        currentGameCode = generateGameCode();
+        gameCodeDisplay.textContent = currentGameCode;
         
-        // Сброс статистики
-        currentQuestionIndex = 0;
-        score = 0;
-        correctCount = 0;
-        streak = 0;
-        bestStreak = 0;
-        totalTime = 0;
+        // Получаем настройки
+        const gameName = document.getElementById('game-name').value || 'Игра';
+        const selectedTopic = document.querySelector('.topic-btn.active').dataset.topic;
+        const questionCount = parseInt(questionCountSlider.value);
         
-        // Обновление интерфейса
-        document.getElementById('total-q').textContent = questions.length;
-        document.getElementById('score').textContent = score;
-        document.getElementById('streak').textContent = streak;
+        // Создаем ссылку для учеников
+        const studentUrl = `${window.location.origin.replace('teacher', 'student')}?game=${currentGameCode}`;
+        gameLinkDisplay.textContent = studentUrl;
         
-        // Показываем модальное окно для имени, если имя не установлено
-        if (!localStorage.getItem('brainQuizPlayerName')) {
-            nameModal.classList.add('active');
+        // Генерируем QR-код
+        document.getElementById('qrcode').innerHTML = '';
+        new QRCode(document.getElementById('qrcode'), {
+            text: studentUrl,
+            width: 200,
+            height: 200,
+            colorDark: "#000000",
+            colorLight: "#ffffff"
+        });
+        
+        // Создаем ссылки в Firebase
+        gameRef = database.ref(`games/${currentGameCode}`);
+        playersRef = gameRef.child('players');
+        questionsRef = gameRef.child('questions');
+        
+        // Фильтруем вопросы по теме
+        let filteredQuestions = quizQuestions;
+        if (selectedTopic === 'oral') {
+            filteredQuestions = quizQuestions.filter(q => q.category.includes('Устное'));
+        } else if (selectedTopic === 'oge') {
+            filteredQuestions = quizQuestions.filter(q => q.category.includes('ОГЭ'));
+        }
+        
+        // Ограничиваем количество вопросов
+        const selectedQuestions = filteredQuestions.slice(0, questionCount);
+        
+        // Сохраняем настройки игры
+        gameRef.set({
+            code: currentGameCode,
+            name: gameName,
+            state: 'waiting',
+            currentQuestion: 0,
+            totalQuestions: selectedQuestions.length,
+            topic: selectedTopic,
+            createdAt: firebase.database.ServerValue.TIMESTAMP
+        });
+        
+        // Сохраняем вопросы
+        const questionsData = {};
+        selectedQuestions.forEach((q, index) => {
+            questionsData[index] = {
+                question: q.question,
+                options: q.options,
+                correct: q.correct,
+                category: q.category,
+                topic: q.topic,
+                hint: q.hint
+            };
+        });
+        questionsRef.set(questionsData);
+        
+        // Начинаем слушать игроков
+        playersRef.on('value', updatePlayersList);
+        
+        // Слушаем изменения состояния игры
+        gameRef.on('value', handleGameUpdate);
+        
+        // Закрываем модальное окно
+        createGameModal.classList.remove('active');
+        
+        // Активируем кнопки управления
+        startGameBtn.disabled = false;
+        gameStatus.textContent = 'Ожидание';
+    }
+    
+    function generateGameCode() {
+        return Math.floor(1000 + Math.random() * 9000).toString();
+    }
+    
+    function updatePlayersList(snapshot) {
+        const players = snapshot.val() || {};
+        const count = Object.keys(players).length;
+        playerCount.textContent = count;
+        
+        let html = '';
+        if (count === 0) {
+            html = `
+                <div class="empty-state">
+                    <i class="fas fa-user-plus"></i>
+                    <p>Игроки появятся здесь</p>
+                </div>
+            `;
         } else {
-            playerName = localStorage.getItem('brainQuizPlayerName');
-            startGame();
+            Object.values(players).forEach(player => {
+                html += `
+                    <div class="player-item">
+                        <div class="player-avatar">
+                            ${player.name ? player.name.charAt(0).toUpperCase() : '?'}
+                        </div>
+                        <div class="player-info">
+                            <div class="player-name">${player.name || 'Аноним'}</div>
+                            <div class="player-stats">
+                                <span>${player.score || 0} очков</span>
+                                <span>${player.correct || 0} верно</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        playersList.innerHTML = html;
+    }
+    
+    function handleGameUpdate(snapshot) {
+        const gameData = snapshot.val();
+        if (!gameData) return;
+        
+        gameState = gameData.state;
+        currentQuestionIndex = gameData.currentQuestion || 0;
+        
+        // Обновляем интерфейс в зависимости от состояния
+        const screens = {
+            'waiting': waitingScreen,
+            'question': questionScreen,
+            'results': resultsScreen,
+            'finished': finalScreen
+        };
+        
+        // Скрываем все экраны
+        Object.values(screens).forEach(screen => screen.classList.remove('active'));
+        
+        // Показываем нужный экран
+        if (screens[gameState]) {
+            screens[gameState].classList.add('active');
+        }
+        
+        // Обновляем статус
+        const statusText = {
+            'waiting': 'Ожидание игроков',
+            'question': 'Вопрос активен',
+            'results': 'Показ результатов',
+            'finished': 'Игра завершена'
+        };
+        gameStatus.textContent = statusText[gameState] || 'Неизвестно';
+        
+        // Обновляем кнопки
+        nextQuestionBtn.disabled = gameState !== 'results';
+        
+        // Если активен вопрос - показываем его
+        if (gameState === 'question') {
+            showQuestion(currentQuestionIndex);
+            startQuestionTimer();
+        }
+        
+        // Если показываем результаты - обновляем статистику
+        if (gameState === 'results') {
+            showResults(currentQuestionIndex);
+        }
+        
+        // Если игра завершена - показываем финальный лидерборд
+        if (gameState === 'finished') {
+            showFinalResults();
         }
     }
     
-    // Обработчик сохранения имени
-    saveNameBtn.addEventListener('click', function() {
-        const name = playerNameInput.value.trim();
-        if (name) {
-            playerName = name;
-            localStorage.setItem('brainQuizPlayerName', name);
-            nameModal.classList.remove('active');
-            startGame();
+    // Кнопка "Начать игру"
+    startGameBtn.addEventListener('click', function() {
+        if (!gameRef) return;
+        
+        gameRef.update({
+            state: 'question',
+            currentQuestion: 0,
+            startedAt: firebase.database.ServerValue.TIMESTAMP
+        });
+        
+        this.disabled = true;
+        nextQuestionBtn.disabled = false;
+    });
+    
+    // Кнопка "Следующий вопрос"
+    nextQuestionBtn.addEventListener('click', function() {
+        if (!gameRef) return;
+        
+        currentQuestionIndex++;
+        
+        if (currentQuestionIndex >= (gameRef.totalQuestions || 10)) {
+            // Завершаем игру
+            endGame();
         } else {
-            playerNameInput.style.borderColor = 'var(--secondary)';
-            playerNameInput.placeholder = 'Введи имя, мозго-воин!';
+            gameRef.update({
+                state: 'question',
+                currentQuestion: currentQuestionIndex
+            });
         }
     });
     
-    // Начало игры
-    function startGame() {
-        modeScreen.classList.remove('active');
-        gameScreen.classList.add('active');
+    // Кнопка "Завершить игру"
+    endGameBtn.addEventListener('click', function() {
+        endGame();
+    });
+    
+    function endGame() {
+        clearInterval(timerInterval);
         
-        document.getElementById('player-name').textContent = playerName;
-        loadQuestion();
+        if (gameRef) {
+            gameRef.update({
+                state: 'finished',
+                finishedAt: firebase.database.ServerValue.TIMESTAMP
+            });
+        }
     }
     
-    // Загрузка вопроса
-    function loadQuestion() {
-        clearInterval(timer);
-        
-        if (currentQuestionIndex >= questions.length) {
-            endGame();
-            return;
-        }
-        
-        const question = questions[currentQuestionIndex];
-        
-        // Обновляем интерфейс
-        document.getElementById('current-q').textContent = currentQuestionIndex + 1;
-        document.getElementById('question-category').textContent = question.category;
-        document.getElementById('question-difficulty').textContent = getDifficultyText(question.difficulty || 2);
-        document.getElementById('question-text').textContent = question.question;
-        document.getElementById('hint-text').textContent = question.hint || 'Подсказка не предусмотрена';
-        
-        // Обновляем прогресс-бар
-        const progressPercent = ((currentQuestionIndex + 1) / questions.length) * 100;
-        document.querySelector('.progress-fill').style.width = `${progressPercent}%`;
-        
-        // Очищаем контейнер вариантов
-        const optionsContainer = document.getElementById('options-container');
-        optionsContainer.innerHTML = '';
-        
-        // Создаем варианты ответов
-        question.options.forEach((option, index) => {
-            const optionElement = document.createElement('div');
-            optionElement.className = 'option';
-            optionElement.innerHTML = `
-                <div class="option-letter">${String.fromCharCode(65 + index)}</div>
-                <div class="option-text">${option}</div>
-            `;
-            
-            optionElement.addEventListener('click', () => checkAnswer(index, question.correct));
-            optionsContainer.appendChild(optionElement);
+    // Кнопка "Новая игра"
+    newGameBtn.addEventListener('click', function() {
+        location.reload();
+    });
+    
+    // Кнопка копирования ссылки
+    copyLinkBtn.addEventListener('click', function() {
+        const link = gameLinkDisplay.textContent;
+        navigator.clipboard.writeText(link).then(() => {
+            const originalText = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-check"></i> Скопировано!';
+            setTimeout(() => {
+                this.innerHTML = originalText;
+            }, 2000);
         });
+    });
+    
+    function showQuestion(index) {
+        if (!questionsRef) return;
         
-        // Скрываем фидбэк
-        document.querySelector('.feedback-container').style.display = 'none';
-        
-        // Запускаем таймер
-        timeLeft = questionTime;
-        document.getElementById('timer').textContent = timeLeft;
-        
-        timer = setInterval(() => {
-            timeLeft--;
-            document.getElementById('timer').textContent = timeLeft;
-            totalTime++;
+        questionsRef.child(index).once('value').then(snapshot => {
+            const question = snapshot.val();
+            if (!question) return;
             
-            // Обновляем визуализацию таймера
-            updateTimerVisual();
+            // Обновляем номер вопроса
+            gameRef.once('value').then(gameSnapshot => {
+                const gameData = gameSnapshot.val();
+                currentQuestionSpan.textContent = index + 1;
+                totalQuestionsSpan.textContent = gameData.totalQuestions || 10;
+            });
+            
+            // Показываем вопрос
+            displayQuestion.textContent = question.question;
+            
+            // Показываем варианты
+            let optionsHtml = '';
+            question.options.forEach((option, i) => {
+                optionsHtml += `
+                    <div class="display-option" data-index="${i}">
+                        <div class="option-letter">${String.fromCharCode(65 + i)}</div>
+                        <div class="option-text">${option}</div>
+                    </div>
+                `;
+            });
+            displayOptions.innerHTML = optionsHtml;
+        });
+    }
+    
+    function startQuestionTimer() {
+        let timeLeft = 30;
+        displayTimer.textContent = timeLeft;
+        
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            displayTimer.textContent = timeLeft;
             
             if (timeLeft <= 0) {
-                clearInterval(timer);
-                showTimeOut();
+                clearInterval(timerInterval);
+                // Автоматически переходим к результатам
+                if (gameRef && gameState === 'question') {
+                    gameRef.update({
+                        state: 'results'
+                    });
+                }
             }
         }, 1000);
     }
     
-    // Визуализация таймера
-    function updateTimerVisual() {
-        const timerElement = document.getElementById('timer');
-        if (timeLeft <= 10) {
-            timerElement.style.color = 'var(--secondary)';
-            timerElement.classList.add('pulse');
-        } else if (timeLeft <= 20) {
-            timerElement.style.color = 'orange';
-        } else {
-            timerElement.style.color = 'var(--primary)';
-            timerElement.classList.remove('pulse');
-        }
-    }
-    
-    // Проверка ответа
-    function checkAnswer(selectedIndex, correctIndex) {
-        clearInterval(timer);
+    function showResults(questionIndex) {
+        if (!questionsRef || !playersRef) return;
         
-        const options = document.querySelectorAll('.option');
-        const isCorrect = selectedIndex === correctIndex;
-        
-        // Подсвечиваем ответы
-        options.forEach((option, index) => {
-            option.style.pointerEvents = 'none';
+        // Получаем вопрос
+        questionsRef.child(questionIndex).once('value').then(qSnapshot => {
+            const question = qSnapshot.val();
+            if (!question) return;
             
-            if (index === correctIndex) {
-                option.classList.add('correct-answer');
-            } else if (index === selectedIndex && !isCorrect) {
-                option.classList.add('wrong-answer');
-            }
-        });
-        
-        // Обработка результата
-        if (isCorrect) {
-            // Вычисляем очки: базовые + бонус за скорость
-            const basePoints = 100;
-            const speedBonus = timeLeft * 10; // Максимум 300 очков за скорость
-            const streakBonus = streak * 50; // Бонус за серию
-            const totalPoints = basePoints + speedBonus + streakBonus;
-            
-            score += totalPoints;
-            correctCount++;
-            streak++;
-            
-            if (streak > bestStreak) {
-                bestStreak = streak;
-            }
-            
-            // Показываем успех
-            showFeedback(`🎯 БАМ! Правильно! +${totalPoints} очков 
-            (${speedBonus} за скорость + ${streakBonus} за серию)`, true, totalPoints);
-        } else {
-            streak = 0;
-            showFeedback(`💥 Промах! Правильный ответ: ${String.fromCharCode(65 + correctIndex)}`, false, 0);
-        }
-        
-        // Обновляем статистику
-        document.getElementById('score').textContent = score;
-        document.getElementById('streak').textContent = streak;
-        
-        // Сохраняем в Firebase
-        saveGameResult();
-    }
-    
-    // Таймаут
-    function showTimeOut() {
-        streak = 0;
-        showFeedback('⏰ Время вышло! Твой мозг замедлился...', false, 0);
-        document.getElementById('streak').textContent = streak;
-    }
-    
-    // Показать фидбэк
-    function showFeedback(text, isSuccess, points) {
-        const feedbackContainer = document.querySelector('.feedback-container');
-        const feedbackContent = document.getElementById('feedback-content');
-        
-        feedbackContent.innerHTML = `
-            <div class="feedback-message ${isSuccess ? 'success' : 'error'}">
-                <h3>${text}</h3>
-                ${points > 0 ? `<div class="points-animation">+${points}</div>` : ''}
-            </div>
-        `;
-        
-        feedbackContainer.style.display = 'block';
-        
-        // Добавляем кнопку "Далее"
-        const nextBtn = document.getElementById('next-btn');
-        nextBtn.onclick = nextQuestion;
-        
-        // Автоматический переход через 3 секунды
-        setTimeout(() => {
-            if (document.querySelector('.feedback-container').style.display === 'block') {
-                nextQuestion();
-            }
-        }, 3000);
-    }
-    
-    // Следующий вопрос
-    function nextQuestion() {
-        currentQuestionIndex++;
-        
-        if (currentQuestionIndex < questions.length) {
-            loadQuestion();
-        } else {
-            endGame();
-        }
-    }
-    
-    // Завершение игры
-    function endGame() {
-        clearInterval(timer);
-        gameScreen.classList.remove('active');
-        resultsScreen.classList.add('active');
-        
-        // Обновляем результаты
-        const accuracy = questions.length > 0 ? Math.round((correctCount / questions.length) * 100) : 0;
-        const brainLevel = getBrainLevel(accuracy, score);
-        
-        document.getElementById('final-score').textContent = score;
-        document.getElementById('correct-count').textContent = `${correctCount}/${questions.length} (${accuracy}%)`;
-        document.getElementById('best-streak').textContent = bestStreak;
-        document.getElementById('total-time').textContent = `${totalTime}с`;
-        document.getElementById('brain-level').textContent = brainLevel;
-        
-        // Отображаем достижения
-        showAchievements();
-        
-        // Сохраняем в лидерборд
-        saveToLeaderboard();
-    }
-    
-    // Определение уровня мозга
-    function getBrainLevel(accuracy, score) {
-        if (accuracy >= 90 && score > 2000) return 'ГЕНИЙ 🧠💎';
-        if (accuracy >= 80) return 'ПРОФИ 🧠🔥';
-        if (accuracy >= 60) return 'СПЕЦИАЛИСТ 🧠⚡';
-        if (accuracy >= 40) return 'УЧЕНИК 🧠📚';
-        return 'НОВИЧОК 🧠🌱';
-    }
-    
-    // Показать достижения
-    function showAchievements() {
-        const achievements = [];
-        
-        if (correctCount === questions.length) {
-            achievements.push({ title: '💯 Идеальный результат', desc: 'Все ответы верны!' });
-        }
-        
-        if (bestStreak >= 5) {
-            achievements.push({ title: '🔥 Горячая серия', desc: `${bestStreak} правильных ответов подряд` });
-        }
-        
-        if (score > 1500) {
-            achievements.push({ title: '🏆 Высший балл', desc: `${score} очков - невероятно!` });
-        }
-        
-        if (totalTime < questions.length * 15) {
-            achievements.push({ title: '⚡ Скорострел', desc: 'Отвечал быстрее всех' });
-        }
-        
-        const achievementsList = document.getElementById('achievements-list');
-        achievementsList.innerHTML = achievements.map(ach => `
-            <div class="achievement-item">
-                <div class="achievement-icon">${ach.title.split(' ')[0]}</div>
-                <div class="achievement-info">
-                    <h4>${ach.title}</h4>
-                    <p>${ach.desc}</p>
-                </div>
-            </div>
-        `).join('');
-    }
-    
-    // Сохранение в Firebase
-    function saveGameResult() {
-        if (!window.database) return;
-        
-        const gameRef = window.database.ref('games').push();
-        gameRef.set({
-            player: playerName,
-            score: score,
-            correct: correctCount,
-            total: questions.length,
-            streak: streak,
-            timestamp: firebase.database.ServerValue.TIMESTAMP
-        });
-    }
-    
-    function saveToLeaderboard() {
-        if (!window.database) return;
-        
-        const leaderboardRef = window.database.ref('leaderboard').push();
-        leaderboardRef.set({
-            player: playerName,
-            score: score,
-            accuracy: Math.round((correctCount / questions.length) * 100),
-            date: new Date().toISOString().split('T')[0],
-            timestamp: firebase.database.ServerValue.TIMESTAMP
-        });
-    }
-    
-    // Загрузка вопросов по теме
-    function getQuestionsByTopic(topic) {
-        // Берем базовые вопросы из quiz-data.js
-        let filteredQuestions = [...quizQuestions];
-        
-        if (topic === 'oral') {
-            filteredQuestions = quizQuestions.filter(q => q.category.includes('Устное'));
-        } else if (topic === 'oge') {
-            filteredQuestions = quizQuestions.filter(q => q.category.includes('ОГЭ'));
-        } else if (topic === 'random') {
-            // Перемешиваем вопросы
-            filteredQuestions = [...quizQuestions].sort(() => Math.random() - 0.5).slice(0, 10);
-        }
-        
-        // Добавляем сложность
-        return filteredQuestions.map(q => ({
-            ...q,
-            difficulty: Math.floor(Math.random() * 3) + 1 // 1-3
-        }));
-    }
-    
-    function getDifficultyText(level) {
-        switch(level) {
-            case 1: return 'Легкая';
-            case 2: return 'Средняя';
-            case 3: return 'Сложная';
-            default: return 'Средняя';
-        }
-    }
-    
-    // Обработчики кнопок режимов
-    document.querySelectorAll('[data-action="start-solo"]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            selectedTopic = 'all';
-            initGame();
-        });
-    });
-    
-    document.querySelectorAll('[data-action="start-battle"]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            alert('Режим Battle будет в следующем обновлении! 🚀');
-        });
-    });
-    
-    document.querySelectorAll('[data-topic]').forEach(btn => {
-        btn.addEventListener('click', function() {
-            selectedTopic = this.getAttribute('data-topic');
-            initGame();
-        });
-    });
-    
-    // Кнопки результатов
-    document.getElementById('play-again-btn').addEventListener('click', () => {
-        resultsScreen.classList.remove('active');
-        modeScreen.classList.add('active');
-    });
-    
-    document.getElementById('leaderboard-btn').addEventListener('click', () => {
-        resultsScreen.classList.remove('active');
-        leaderboardScreen.classList.add('active');
-        loadLeaderboard();
-    });
-    
-    document.getElementById('back-to-main').addEventListener('click', () => {
-        leaderboardScreen.classList.remove('active');
-        modeScreen.classList.add('active');
-    });
-    
-    // Загрузка лидерборда
-    function loadLeaderboard() {
-        if (!window.database) return;
-        
-        const leaderboardRef = window.database.ref('leaderboard');
-        leaderboardRef.orderByChild('score').limitToLast(20).once('value')
-            .then(snapshot => {
-                const scores = [];
-                snapshot.forEach(child => {
-                    scores.push(child.val());
+            // Получаем ответы игроков
+            playersRef.once('value').then(pSnapshot => {
+                const players = pSnapshot.val() || {};
+                
+                // Считаем статистику ответов
+                const answerCounts = [0, 0, 0, 0];
+                let totalAnswers = 0;
+                
+                Object.values(players).forEach(player => {
+                    if (player.answers && player.answers[questionIndex] !== undefined) {
+                        const answer = player.answers[questionIndex];
+                        if (answer >= 0 && answer < 4) {
+                            answerCounts[answer]++;
+                            totalAnswers++;
+                        }
+                    }
                 });
                 
-                scores.sort((a, b) => b.score - a.score);
-                displayLeaderboard(scores);
+                // Показываем статистику
+                const statsGrid = document.getElementById('answer-stats');
+                let statsHtml = '';
+                
+                question.options.forEach((option, i) => {
+                    const count = answerCounts[i];
+                    const percentage = totalAnswers > 0 ? Math.round((count / totalAnswers) * 100) : 0;
+                    const isCorrect = i === question.correct;
+                    
+                    statsHtml += `
+                        <div class="stat-row">
+                            <div class="stat-label">
+                                <span class="letter">${String.fromCharCode(65 + i)}</span>
+                                <span>${option}</span>
+                                ${isCorrect ? '<span class="correct-mark">✓ Правильный</span>' : ''}
+                            </div>
+                            <div class="bar-container">
+                                <div class="bar" style="width: ${percentage}%">
+                                    ${count} (${percentage}%)
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                statsGrid.innerHTML = statsHtml;
+                
+                // Показываем мини-лидерборд
+                showMiniLeaderboard(players);
             });
+        });
     }
     
-    function displayLeaderboard(scores) {
-        const leaderboardContent = document.getElementById('leaderboard-content');
+    function showMiniLeaderboard(players) {
+        // Сортируем игроков по очкам
+        const sortedPlayers = Object.values(players)
+            .sort((a, b) => (b.score || 0) - (a.score || 0))
+            .slice(0, 5);
         
-        if (scores.length === 0) {
-            leaderboardContent.innerHTML = '<p class="no-data">Пока нет результатов. Будь первым! 🏆</p>';
-            return;
-        }
-        
-        let html = '';
-        scores.forEach((score, index) => {
-            const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🏅';
-            const isCurrentPlayer = score.player === playerName;
-            
-            html += `
-                <div class="leaderboard-item ${isCurrentPlayer ? 'current-player' : ''}">
-                    <div class="rank">${index + 1} ${medal}</div>
-                    <div class="player">${score.player}</div>
-                    <div class="score">${score.score} очков</div>
-                    <div class="accuracy">${score.accuracy || 0}%</div>
+        let leaderboardHtml = '';
+        sortedPlayers.forEach((player, index) => {
+            leaderboardHtml += `
+                <div class="leaderboard-item">
+                    <span class="rank">${index + 1}</span>
+                    <span class="name">${player.name || 'Аноним'}</span>
+                    <span class="score">${player.score || 0} очков</span>
                 </div>
             `;
         });
         
-        leaderboardContent.innerHTML = html;
+        document.getElementById('mini-leaderboard-content').innerHTML = leaderboardHtml;
     }
     
-    // Бонусные кнопки
-    document.getElementById('hint-btn').addEventListener('click', function() {
-        if (score >= 50) {
-            score -= 50;
-            document.getElementById('score').textContent = score;
+    function showFinalResults() {
+        if (!playersRef) return;
+        
+        playersRef.once('value').then(snapshot => {
+            const players = snapshot.val() || {};
+            const sortedPlayers = Object.values(players)
+                .sort((a, b) => (b.score || 0) - (a.score || 0));
             
-            // Показываем подсказку
-            document.getElementById('hint-box').style.display = 'flex';
-            this.disabled = true;
+            let finalHtml = '';
+            sortedPlayers.forEach((player, index) => {
+                const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🏅';
+                
+                finalHtml += `
+                    <div class="leaderboard-item">
+                        <span class="rank">${index + 1} ${medal}</span>
+                        <span class="name">${player.name || 'Аноним'}</span>
+                        <span class="score">${player.score || 0} очков</span>
+                    </div>
+                `;
+            });
             
-            setTimeout(() => {
-                this.disabled = false;
-            }, 5000);
-        }
-    });
-    
-    document.getElementById('skip-btn').addEventListener('click', function() {
-        if (score >= 100) {
-            score -= 100;
-            document.getElementById('score').textContent = score;
-            nextQuestion();
-        }
-    });
-    
-    // Инициализация при загрузке
-    updateOnlineStats();
+            document.getElementById('final-leaderboard').innerHTML = finalHtml;
+        });
+    }
 });
