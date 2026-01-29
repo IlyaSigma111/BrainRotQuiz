@@ -1,5 +1,5 @@
 // ============================================
-// student.js - ПОЛНАЯ ВЕРСИЯ С ФИКСАМИ И ОТЛАДКОЙ + СИСТЕМА КИКА
+// student.js - ПОЛНАЯ РАБОЧАЯ ВЕРСИЯ С РЕАЛЬНЫМ КИКОМ
 // ============================================
 
 let currentGameId = null;
@@ -8,8 +8,9 @@ let currentQuestion = null;
 let hasAnswered = false;
 let timerInterval = null;
 let gameListener = null;
+let kickListener = null;
+let playerStatusListener = null;
 let selectedOption = null;
-let kickListener = null; // Новый слушатель для киков
 
 // DOM элементы
 const joinScreen = document.getElementById('joinScreen');
@@ -30,116 +31,109 @@ const nextCountdown = document.getElementById('nextCountdown');
 const currentQ = document.getElementById('currentQ');
 const questionType = document.getElementById('questionType');
 
-// ================ УТИЛИТЫ ================
+// ================ СИСТЕМА КИКА ================
 
-// Универсальная функция для получения правильного ответа
-function getCorrectAnswer(question) {
-    if (!question || question.correct === undefined || question.correct === null) {
-        console.error("❌ Вопрос или correct не определен:", question);
-        return null;
-    }
+// Основная функция кика - ВЫЗЫВАЕТСЯ ИЗВНЕ!
+function forceKickPlayer() {
+    console.log("🚫 ВЫЗВАН ПРИНУДИТЕЛЬНЫЙ КИК!");
     
-    let correct = question.correct;
+    // 1. Остановить ВСЕ слушатели
+    stopAllListeners();
     
-    // Если это строка, пытаемся преобразовать
-    if (typeof correct === 'string') {
+    // 2. Очистить все таймеры
+    clearAllTimers();
+    
+    // 3. Удалить себя из базы (если еще есть доступ)
+    if (currentGameId && playerName) {
         try {
-            if (correct.startsWith('[')) {
-                correct = JSON.parse(correct);
-            } else if (!isNaN(correct) && correct.trim() !== '') {
-                correct = parseInt(correct);
-            }
+            db.ref(`games/${currentGameId}/players/${playerName}`).remove();
         } catch (e) {
-            console.error("❌ Ошибка преобразования correct:", e);
+            console.log("Не удалось удалить из базы, но это нормально");
         }
     }
     
-    return correct;
+    // 4. Сбросить все переменные
+    resetGameState();
+    
+    // 5. Показать сообщение и перезагрузить
+    alert("❌ Вас удалили из игры модератором!");
+    setTimeout(() => {
+        location.reload(); // ПОЛНАЯ перезагрузка страницы
+    }, 1000);
 }
 
-// Проверка правильности ответа
-function checkAnswerCorrectness(answerIndex, question) {
-    const correctAnswer = getCorrectAnswer(question);
-    
-    if (correctAnswer === null) {
-        console.error("❌ Не удалось определить правильный ответ для вопроса:", question);
-        return false;
+// Остановить все слушатели Firebase
+function stopAllListeners() {
+    if (gameListener) {
+        gameListener();
+        gameListener = null;
+        console.log("✅ Остановлен слушатель игры");
     }
     
-    if (Array.isArray(correctAnswer)) {
-        return correctAnswer.includes(answerIndex);
-    } else if (typeof correctAnswer === 'number') {
-        return (answerIndex === correctAnswer);
+    if (kickListener) {
+        kickListener();
+        kickListener = null;
+        console.log("✅ Остановлен слушатель киков");
     }
     
-    console.error("❌ Неподдерживаемый тип correctAnswer:", typeof correctAnswer, correctAnswer);
-    return false;
+    if (playerStatusListener) {
+        playerStatusListener();
+        playerStatusListener = null;
+        console.log("✅ Остановлен слушатель статуса");
+    }
 }
 
-// Получение текста правильного ответа
-function getCorrectAnswerText(question) {
-    const correctAnswer = getCorrectAnswer(question);
-    
-    if (correctAnswer === null) {
-        return "Не удалось определить правильный ответ";
+// Очистить все таймеры
+function clearAllTimers() {
+    if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
     }
     
-    if (Array.isArray(correctAnswer)) {
-        const correctOptions = correctAnswer.map(index => {
-            return question.options[index] || `Вариант ${index + 1}`;
-        });
-        return correctOptions.join(', ');
-    } else if (typeof correctAnswer === 'number') {
-        return question.options[correctAnswer] || `Вариант ${correctAnswer + 1}`;
+    // Очистить все возможные таймауты
+    const maxTimeoutId = setTimeout(() => {}, 0);
+    for (let i = 0; i < maxTimeoutId; i++) {
+        clearTimeout(i);
+        clearInterval(i);
     }
-    
-    return "Ошибка формата ответа";
 }
 
-// ================ СИСТЕМА КИКА ОТ МОДЕРАТОРА ================
+// ================ ПРОВЕРКА КИКА ================
 
-// Функция проверки киков от модератора
-function setupKickListener() {
+// Проверяем, кикнули ли нас
+function checkIfKicked() {
     if (!currentGameId || !playerName) return;
     
-    console.log(`👂 Начинаю слушать команды кика для ${playerName} в игре ${currentGameId}`);
+    console.log("🔍 Проверяю, не кикнули ли меня...");
     
-    // Слушаем команды кика
-    kickListener = db.ref(`kick_commands/${currentGameId}/${playerName}`).on('value', snapshot => {
-        const kickCommand = snapshot.val();
-        
-        if (kickCommand && kickCommand.command === "FORCE_KICK") {
-            console.log("🚫 Получена команда кика от модератора:", kickCommand);
-            
-            // Показываем сообщение
-            if (confirm("❌ Модератор удалил вас из игры. Нажмите OK для выхода.")) {
-                // Выходим из игры
-                leaveGame();
-                
-                // Удаляем команду кика
-                db.ref(`kick_commands/${currentGameId}/${playerName}`).remove()
-                    .then(() => {
-                        console.log("✅ Команда кика очищена");
-                    });
-            } else {
-                // Все равно выходим, даже если нажал "Отмена"
-                leaveGame();
-                db.ref(`kick_commands/${currentGameId}/${playerName}`).remove();
-            }
+    // Слушаем свой статус в игре
+    playerStatusListener = db.ref(`games/${currentGameId}/players/${playerName}`).on('value', snapshot => {
+        if (!snapshot.exists()) {
+            console.log("🚫 Меня удалили из игры!");
+            forceKickPlayer();
         }
     }, error => {
-        console.error("❌ Ошибка слушателя киков:", error);
+        console.error("❌ Ошибка проверки статуса:", error);
+    });
+    
+    // Также слушаем команды кика (как дополнительная защита)
+    kickListener = db.ref(`kick_commands/${currentGameId}/${playerName}`).on('value', snapshot => {
+        const command = snapshot.val();
+        if (command && command.command === "KICK") {
+            console.log("🚫 Получена команда кика!");
+            forceKickPlayer();
+            // Удаляем команду
+            db.ref(`kick_commands/${currentGameId}/${playerName}`).remove();
+        }
     });
 }
 
 // ================ ОСНОВНЫЕ ФУНКЦИИ ================
 
 function joinGame() {
-    // Получить данные
     const name = playerNameInput.value.trim();
     const code = gameCodeInput.value.trim();
     
-    // Валидация
     if (!name || name.length < 2) {
         alert("Введите имя (минимум 2 символа)");
         playerNameInput.focus();
@@ -155,25 +149,20 @@ function joinGame() {
     playerName = name;
     currentGameId = "game_" + code;
     
-    console.log(`🎮 Пытаюсь подключиться как ${name} к игре ${currentGameId}`);
+    console.log(`🎮 Подключаюсь как "${name}" к игре ${code}`);
     
-    // Проверить игру в Firebase
+    // Проверить игру
     db.ref(`games/${currentGameId}`).once('value').then(snapshot => {
         if (!snapshot.exists()) {
-            alert("Игра с таким кодом не найдена!\nПроверьте код или попросите учителя создать игру.");
+            alert("Игра не найдена!");
             return;
         }
         
         const game = snapshot.val();
         
-        if (game.status === "finished") {
-            alert("Эта игра уже завершена");
-            return;
-        }
-        
         // Проверить уникальность имени
         if (game.players && game.players[name]) {
-            alert("Игрок с таким именем уже есть в игре");
+            alert("Игрок с таким именем уже есть!");
             return;
         }
         
@@ -193,21 +182,19 @@ function joinGame() {
             // Переключить экран
             switchScreen('waiting');
             
-            // Начать слушать игру
+            // НАЧАТЬ ПРОВЕРКУ КИКА (ВАЖНО!)
+            checkIfKicked();
+            
+            // Слушать игру
             listenToGame();
             
-            // НАЧАТЬ ПРОВЕРКУ КОМАНД КИКА ОТ МОДЕРАТОРА
-            setupKickListener();
-            
-            console.log(`✅ Ученик подключен: ${name} к игре ${code}`);
+            console.log(`✅ Подключен как ${name} к игре ${code}`);
             
         }).catch(error => {
-            console.error("❌ Ошибка регистрации игрока:", error);
-            alert("Ошибка подключения: " + error.message);
+            alert("Ошибка: " + error.message);
         });
         
     }).catch(error => {
-        console.error("❌ Ошибка проверки игры:", error);
         alert("Ошибка сети: " + error.message);
     });
 }
@@ -215,35 +202,30 @@ function joinGame() {
 function listenToGame() {
     if (!currentGameId || gameListener) return;
     
-    console.log(`👂 Начинаю слушать игру: ${currentGameId}`);
+    console.log(`👂 Слушаю игру ${currentGameId}`);
     
     gameListener = db.ref(`games/${currentGameId}`).on('value', snapshot => {
         const game = snapshot.val();
         if (!game) {
-            console.log("⚠️ Игра была удалена учителем");
-            alert("Игра была удалена учителем");
+            console.log("Игра удалена");
             leaveGame();
             return;
         }
         
-        // Обновить счетчик игроков
-        if (game.players) {
-            const playerCount = Object.keys(game.players).length;
-            roomPlayers.textContent = playerCount;
-            
-            // Проверить, не удалили ли нас
-            if (!game.players[playerName]) {
-                console.log("⚠️ Игрок удален из игры");
-                alert("Вас удалили из игры");
-                leaveGame();
-                return;
-            }
+        // ОБНОВЛЕННАЯ ПРОВЕРКА: Если нас нет в списке игроков - ВЫХОДИМ
+        if (game.players && !game.players[playerName]) {
+            console.log("🚫 Меня нет в списке игроков - выхожу!");
+            forceKickPlayer();
+            return;
         }
         
-        // Определить текущий вопрос
+        // Обновить счетчик
+        if (game.players) {
+            roomPlayers.textContent = Object.keys(game.players).length;
+        }
+        
         const currentQuestionId = game.currentQuestion;
         
-        // Обработка статуса игры
         switch (game.status) {
             case "lobby":
             case "waiting":
@@ -251,11 +233,8 @@ function listenToGame() {
                 break;
                 
             case "question_active":
-                if (currentQuestionId) {
-                    // Если вопрос изменился или мы еще не отвечали
-                    if (!currentQuestion || currentQuestion.id !== currentQuestionId || !hasAnswered) {
-                        handleQuestionActive(game, currentQuestionId);
-                    }
+                if (currentQuestionId && (!currentQuestion || currentQuestion.id !== currentQuestionId || !hasAnswered)) {
+                    handleQuestionActive(game, currentQuestionId);
                 }
                 break;
                 
@@ -268,18 +247,16 @@ function listenToGame() {
                 break;
         }
     }, error => {
-        console.error("❌ Ошибка слушателя игры:", error);
+        console.error("Ошибка слушателя:", error);
     });
 }
 
 function handleLobby() {
-    // Если мы не на экране ожидания, переключиться
     if (!waitingScreen.classList.contains('active')) {
         switchScreen('waiting');
     }
     clearTimer();
     
-    // Сбросить состояние ответа при возврате в лобби
     if (hasAnswered) {
         hasAnswered = false;
         selectedOption = null;
@@ -287,41 +264,24 @@ function handleLobby() {
 }
 
 function handleQuestionActive(game, questionId) {
-    // Найти вопрос в базе
     currentQuestion = QUIZ_DATA.questions.find(q => q.id === questionId);
-    if (!currentQuestion) {
-        console.error(`❌ Вопрос ${questionId} не найден в базе`);
-        return;
-    }
+    if (!currentQuestion) return;
     
-    console.log(`❓ Вопрос ${currentQuestion.id}: ${currentQuestion.type}`);
-    
-    // Сбросить состояние ответа
     hasAnswered = false;
     selectedOption = null;
     
-    // Обновить UI
     switchScreen('question');
-    
-    // Показать вопрос
     displayQuestion(currentQuestion);
-    
-    // Запустить таймер НА 45 СЕКУНД
     startTimer(45);
-    
-    console.log(`✅ Вопрос ${currentQuestion.id} загружен`);
 }
 
 function displayQuestion(question) {
-    // Обновить метаданные
     const questionIndex = QUIZ_DATA.questions.findIndex(q => q.id === question.id) + 1;
     currentQ.textContent = questionIndex;
     questionType.textContent = getTypeLabel(question.type);
     
-    // Текст вопроса
     questionText.textContent = question.text;
     
-    // Варианты ответов
     optionsContainer.innerHTML = '';
     question.options.forEach((option, index) => {
         const button = document.createElement('button');
@@ -334,11 +294,9 @@ function displayQuestion(question) {
         optionsContainer.appendChild(button);
     });
     
-    // Сбросить статус
     answerStatus.textContent = "Выберите вариант ответа (45 секунд)";
     answerStatus.style.color = "#00ff88";
     
-    // Разблокировать кнопки
     document.querySelectorAll('.option-btn').forEach(btn => {
         btn.disabled = false;
         btn.style.opacity = '1';
@@ -351,16 +309,12 @@ function selectAnswer(answerIndex, buttonElement) {
     
     selectedOption = answerIndex;
     
-    // Подсветить выбранный вариант
     document.querySelectorAll('.option-btn').forEach(btn => {
         btn.classList.remove('selected');
     });
     buttonElement.classList.add('selected');
     
-    // Рассчитать оставшееся время (45 секунд)
     const timeSpent = 45 - parseInt(studentTimer.textContent);
-    
-    // Отправить ответ НЕМЕДЛЕННО
     submitAnswer(answerIndex, timeSpent);
 }
 
@@ -370,25 +324,15 @@ function submitAnswer(answerIndex, timeSpent) {
     hasAnswered = true;
     clearTimer();
     
-    console.log("📤 Отправка ответа:", {
-        answerIndex,
-        currentQuestionId: currentQuestion?.id,
-        playerName,
-        timeSpent
-    });
-    
     // Блокировать кнопки
     document.querySelectorAll('.option-btn').forEach(btn => {
         btn.disabled = true;
         btn.style.opacity = '0.6';
     });
     
-    // Проверка правильности
-    const isCorrect = checkAnswerCorrectness(answerIndex, currentQuestion);
+    // Простая проверка правильности
+    const isCorrect = (answerIndex === currentQuestion.correct);
     
-    console.log("✅ Результат проверки:", isCorrect);
-    
-    // Отправить ответ в Firebase
     const answerData = {
         answerIndex: answerIndex,
         isCorrect: isCorrect,
@@ -397,25 +341,19 @@ function submitAnswer(answerIndex, timeSpent) {
     };
     
     db.ref(`games/${currentGameId}/answers/${currentQuestion.id}/${playerName}`).set(answerData).then(() => {
-        // Показать статус
         if (isCorrect) {
-            answerStatus.innerHTML = '✅ Правильно! Ожидайте результатов...';
+            answerStatus.innerHTML = '✅ Правильно!';
             answerStatus.style.color = '#00ff88';
             
-            // Начислить очки
             db.ref(`games/${currentGameId}/players/${playerName}/score`).transaction(score => {
                 return (score || 0) + (currentQuestion.points || 5);
             });
         } else {
-            answerStatus.innerHTML = '❌ Неправильно! Ожидайте правильного ответа...';
+            answerStatus.innerHTML = '❌ Неправильно!';
             answerStatus.style.color = '#ff416c';
         }
-        
-        console.log(`📤 Ответ отправлен: вариант ${answerIndex} (${isCorrect ? 'правильно' : 'неправильно'})`);
-        
     }).catch(error => {
-        console.error("❌ Ошибка отправки ответа:", error);
-        answerStatus.innerHTML = '⚠️ Ошибка отправки ответа';
+        answerStatus.innerHTML = '⚠️ Ошибка';
         answerStatus.style.color = '#ff9e00';
     });
 }
@@ -440,16 +378,12 @@ function startTimer(seconds) {
 function updateTimerDisplay(timeLeft) {
     studentTimer.textContent = timeLeft;
     
-    // Менять цвет в зависимости от времени
     if (timeLeft <= 5) {
         studentTimer.style.color = '#ff416c';
-        studentTimer.style.animation = 'pulse 0.5s infinite';
     } else if (timeLeft <= 15) {
         studentTimer.style.color = '#ff9e00';
-        studentTimer.style.animation = 'none';
     } else {
         studentTimer.style.color = '#00ff88';
-        studentTimer.style.animation = 'none';
     }
 }
 
@@ -458,16 +392,14 @@ function handleTimeUp() {
     
     hasAnswered = true;
     
-    // Блокировать кнопки
     document.querySelectorAll('.option-btn').forEach(btn => {
         btn.disabled = true;
         btn.style.opacity = '0.4';
     });
     
-    answerStatus.innerHTML = '⏰ Время вышло! Ответ не принят';
+    answerStatus.innerHTML = '⏰ Время вышло!';
     answerStatus.style.color = '#ff9e00';
     
-    // Отправить пустой ответ
     if (currentGameId && playerName && currentQuestion) {
         const answerData = {
             answerIndex: -1,
@@ -489,7 +421,6 @@ function handleShowingResults(game, questionId) {
     
     switchScreen('result');
     
-    // Получить результат ответа
     db.ref(`games/${currentGameId}/answers/${currentQuestion.id}/${playerName}`).once('value').then(snapshot => {
         const userAnswer = snapshot.val();
         showResult(userAnswer, currentQuestion);
@@ -497,62 +428,39 @@ function handleShowingResults(game, questionId) {
         showResult(null, currentQuestion);
     });
     
-    // Запустить отсчет до следующего вопроса
     startNextCountdown();
 }
 
 function showResult(userAnswer, question) {
     let resultHTML = '';
     
+    const correctAnswerText = question.options[question.correct] || `Вариант ${question.correct + 1}`;
+    
     if (userAnswer && userAnswer.answerIndex >= 0) {
         const isCorrect = userAnswer.isCorrect;
         const userAnswerText = question.options[userAnswer.answerIndex] || `Вариант ${userAnswer.answerIndex + 1}`;
         
-        // Получение правильного ответа
-        const correctAnswerText = getCorrectAnswerText(question);
-        
         resultHTML = `
-            <div class="result-header" style="color: ${isCorrect ? '#00ff88' : '#ff416c'}; font-size: 24px; margin-bottom: 20px;">
+            <div style="color: ${isCorrect ? '#00ff88' : '#ff416c'}; font-size: 24px; margin-bottom: 20px;">
                 ${isCorrect ? '✅ ПРАВИЛЬНО!' : '❌ НЕПРАВИЛЬНО'}
-                ${userAnswer.timeSpent ? `<div style="font-size: 16px; color: #8f8f8f;">Время: ${userAnswer.timeSpent} сек.</div>` : ''}
             </div>
-            
-            <div class="result-details">
-                <div style="margin: 10px 0; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 5px;">
-                    <div style="color: #8f8f8f;">Ваш ответ:</div>
-                    <div style="color: white; font-size: 18px;">${userAnswerText}</div>
-                </div>
-                
-                <div style="margin: 10px 0; padding: 10px; background: rgba(0,255,136,0.1); border-radius: 5px; border-left: 4px solid #00ff88;">
-                    <div style="color: #8f8f8f;">Правильный ответ:</div>
-                    <div style="color: #00ff88; font-size: 18px; font-weight: bold;">${correctAnswerText}</div>
-                </div>
-                
-                <div style="margin: 15px 0; padding: 15px; background: rgba(0,173,181,0.1); border-radius: 5px;">
-                    <div style="color: #00adb5; font-weight: bold;">💡 Объяснение:</div>
-                    <div style="color: white; margin-top: 5px;">${question.explanation || 'Объяснение отсутствует'}</div>
-                </div>
+            <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; margin: 10px 0;">
+                <div style="color: #8f8f8f;">Ваш ответ:</div>
+                <div style="color: white; font-size: 18px;">${userAnswerText}</div>
+            </div>
+            <div style="background: rgba(0,255,136,0.1); padding: 15px; border-radius: 10px; margin: 10px 0; border-left: 4px solid #00ff88;">
+                <div style="color: #8f8f8f;">Правильный ответ:</div>
+                <div style="color: #00ff88; font-size: 18px; font-weight: bold;">${correctAnswerText}</div>
             </div>
         `;
     } else {
-        // Получение правильного ответа
-        const correctAnswerText = getCorrectAnswerText(question);
-        
         resultHTML = `
-            <div class="result-header" style="color: #ff9e00; font-size: 24px; margin-bottom: 20px;">
+            <div style="color: #ff9e00; font-size: 24px; margin-bottom: 20px;">
                 ⏰ ВЫ НЕ УСПЕЛИ ОТВЕТИТЬ
             </div>
-            
-            <div class="result-details">
-                <div style="margin: 10px 0; padding: 10px; background: rgba(0,255,136,0.1); border-radius: 5px; border-left: 4px solid #00ff88;">
-                    <div style="color: #8f8f8f;">Правильный ответ:</div>
-                    <div style="color: #00ff88; font-size: 18px; font-weight: bold;">${correctAnswerText}</div>
-                </div>
-                
-                <div style="margin: 15px 0; padding: 15px; background: rgba(0,173,181,0.1); border-radius: 5px;">
-                    <div style="color: #00adb5; font-weight: bold;">💡 Объяснение:</div>
-                    <div style="color: white; margin-top: 5px;">${question.explanation || 'Объяснение отсутствует'}</div>
-                </div>
+            <div style="background: rgba(0,255,136,0.1); padding: 15px; border-radius: 10px; margin: 10px 0; border-left: 4px solid #00ff88;">
+                <div style="color: #8f8f8f;">Правильный ответ:</div>
+                <div style="color: #00ff88; font-size: 18px; font-weight: bold;">${correctAnswerText}</div>
             </div>
         `;
     }
@@ -570,7 +478,6 @@ function startNextCountdown() {
         
         if (countdown <= 0) {
             clearInterval(interval);
-            // Готовимся к следующему вопросу
             currentQuestion = null;
             hasAnswered = false;
             selectedOption = null;
@@ -581,7 +488,6 @@ function startNextCountdown() {
 function handleGameFinished() {
     switchScreen('result');
     
-    // Получить финальную статистику
     db.ref(`games/${currentGameId}/players/${playerName}`).once('value').then(snapshot => {
         const playerData = snapshot.val();
         
@@ -611,39 +517,22 @@ function handleGameFinished() {
 }
 
 function leaveGame() {
-    console.log(`🚪 Выход из игры: ${playerName} из ${currentGameId}`);
+    console.log("🚪 Выхожу из игры...");
     
-    // Отписаться от слушателя киков
-    if (kickListener) {
-        kickListener();
-        kickListener = null;
-    }
+    stopAllListeners();
+    clearAllTimers();
     
-    // Отписаться от слушателя игры
-    if (gameListener) {
-        gameListener();
-        gameListener = null;
-    }
-    
-    // Удалить себя из базы
     if (currentGameId && playerName) {
-        db.ref(`games/${currentGameId}/players/${playerName}`).remove()
-            .then(() => {
-                console.log(`✅ Игрок ${playerName} удален из Firebase`);
-            })
-            .catch(error => {
-                console.error("❌ Ошибка удаления игрока:", error);
-            });
+        try {
+            db.ref(`games/${currentGameId}/players/${playerName}`).remove();
+        } catch (e) {}
     }
     
-    // Сбросить состояние
-    resetGame();
-    
-    // Вернуться на экран входа
+    resetGameState();
     switchScreen('join');
 }
 
-function resetGame() {
+function resetGameState() {
     currentGameId = null;
     playerName = null;
     currentQuestion = null;
@@ -662,12 +551,10 @@ function clearTimer() {
 }
 
 function switchScreen(screenName) {
-    // Скрыть все экраны
     [joinScreen, waitingScreen, questionScreen, resultScreen].forEach(screen => {
         screen.classList.remove('active');
     });
     
-    // Показать нужный экран
     switch(screenName) {
         case 'join':
             joinScreen.classList.add('active');
@@ -687,18 +574,10 @@ function switchScreen(screenName) {
 function getTypeLabel(type) {
     const labels = {
         oral: "🎤 УСТНОЕ",
-        grammar: "📖 ГРАММАТИКА",
         syntax: "📝 СИНТАКСИС",
         punctuation: "🔤 ПУНКТУАЦИЯ",
         spelling: "✍️ ОРФОГРАФИЯ",
-        morphology: "📚 МОРФОЛОГИЯ",
-        reading: "📖 ЧТЕНИЕ",
-        stylistics: "🎨 СТИЛИСТИКА",
-        lexicology: "📖 ЛЕКСИКОЛОГИЯ",
-        writing: "📝 ИЗЛОЖЕНИЕ",
-        composition: "✍️ СОЧИНЕНИЕ",
-        exam_rules: "📋 ПРАВИЛА ОГЭ",
-        grading: "📊 ОЦЕНИВАНИЕ"
+        reading: "📖 ТЕКСТ"
     };
     return labels[type] || type;
 }
@@ -706,77 +585,44 @@ function getTypeLabel(type) {
 // Инициализация
 document.addEventListener('DOMContentLoaded', function() {
     console.log("✅ Student app loaded");
-    console.log("🔍 QUIZ_DATA доступен:", !!window.QUIZ_DATA);
-    console.log("🔍 Firebase доступен:", !!window.db);
     
-    if (window.QUIZ_DATA && window.QUIZ_DATA.questions) {
-        console.log(`📚 Загружено ${QUIZ_DATA.questions.length} вопросов`);
-    }
-    
-    // Автофокус на поле имени
+    // Автофокус
     playerNameInput.focus();
     
-    // Обработчик Enter для перехода между полями
+    // Enter для удобства
     playerNameInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            gameCodeInput.focus();
-        }
+        if (e.key === 'Enter') gameCodeInput.focus();
     });
     
     gameCodeInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            joinGame();
-        }
+        if (e.key === 'Enter') joinGame();
     });
     
-    // Проверка Firebase
-    if (!window.db) {
-        console.error("❌ Firebase не загружен!");
-        alert("Ошибка загрузки базы данных. Обновите страницу.");
-    }
+    // Добавляем глобальную функцию для принудительного кика
+    window.forceKickPlayer = forceKickPlayer;
     
-    if (!window.QUIZ_DATA) {
-        console.error("❌ QUIZ_DATA не загружен!");
-        alert("Ошибка загрузки вопросов. Обновите страницу.");
-    }
-    
-    // Добавляем кнопку принудительного выхода для отладки
+    // Дебаг кнопка
     const debugBtn = document.createElement('button');
     debugBtn.textContent = '🐛';
-    debugBtn.title = 'Отладка';
+    debugBtn.title = 'Тест кика';
     debugBtn.style.cssText = `
         position: fixed;
         bottom: 10px;
-        right: 10px;
-        background: #7209b7;
+        left: 10px;
+        background: #ff416c;
         color: white;
         width: 30px;
         height: 30px;
         border: none;
         border-radius: 50%;
         font-size: 14px;
-        z-index: 9998;
-        opacity: 0.3;
+        z-index: 9999;
         cursor: pointer;
     `;
     debugBtn.onclick = function() {
-        console.log("🐛 Отладка:", {
-            currentGameId,
-            playerName,
-            hasAnswered,
-            currentQuestion
-        });
-        alert(`Отладка:\nИгра: ${currentGameId || 'нет'}\nИгрок: ${playerName || 'нет'}\nОтветил: ${hasAnswered ? 'да' : 'нет'}`);
+        if (confirm("Тест кика - выйти из игры?")) {
+            forceKickPlayer();
+        }
     };
     document.body.appendChild(debugBtn);
 });
-
-// Стили для анимации пульсации
-const timerStyles = document.createElement('style');
-timerStyles.textContent = `
-    @keyframes pulse {
-        0%, 100% { opacity: 1; transform: scale(1); }
-        50% { opacity: 0.7; transform: scale(1.05); }
-    }
-`;
-document.head.appendChild(timerStyles);
