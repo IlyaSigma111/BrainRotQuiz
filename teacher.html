@@ -302,6 +302,7 @@
         .presentation-content {
             flex: 1;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             padding: 40px;
@@ -325,6 +326,65 @@
             justify-content: center;
             gap: 20px;
             align-items: center;
+        }
+        
+        /* СЧЕТЧИК ОТВЕТОВ */
+        .answers-counter {
+            margin-top: 30px;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        
+        .answers-counter.visible {
+            opacity: 1;
+        }
+        
+        .counter-container {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(67, 97, 238, 0.2);
+            border-radius: 20px;
+            padding: 15px 30px;
+            border: 2px solid var(--primary);
+            box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
+        }
+        
+        .counter-numbers {
+            font-size: 2.5rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, var(--accent), var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 0 15px;
+            min-width: 120px;
+            text-align: center;
+        }
+        
+        .counter-label {
+            font-size: 1.1rem;
+            color: var(--gray);
+            margin-top: 5px;
+        }
+        
+        .counter-progress {
+            height: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            margin-top: 10px;
+            overflow: hidden;
+            max-width: 300px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .counter-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            border-radius: 5px;
+            width: 0%;
+            transition: width 0.5s ease;
         }
         
         /* АДАПТИВНОСТЬ */
@@ -366,6 +426,10 @@
             
             .presentation-controls .btn {
                 width: 100%;
+            }
+            
+            .counter-numbers {
+                font-size: 2rem;
             }
         }
         
@@ -511,6 +575,25 @@
             <div id="presentationQuestion" class="presentation-question">
                 <!-- Вопрос появится здесь -->
             </div>
+            
+            <!-- СЧЕТЧИК ОТВЕТОВ В РЕЖИМЕ ПРЕЗЕНТАЦИИ -->
+            <div id="presentationCounter" class="answers-counter">
+                <div class="counter-container">
+                    <div class="counter-icon">
+                        <i class="fas fa-users" style="font-size: 2rem; color: var(--accent);"></i>
+                    </div>
+                    <div class="counter-numbers">
+                        <span id="answeredCount">0</span>/<span id="totalPlayersCount">0</span>
+                    </div>
+                    <div class="counter-icon">
+                        <i class="fas fa-check-circle" style="font-size: 2rem; color: var(--success);"></i>
+                    </div>
+                </div>
+                <div class="counter-label">Игроков ответило</div>
+                <div class="counter-progress">
+                    <div id="counterProgressFill" class="counter-progress-fill"></div>
+                </div>
+            </div>
         </div>
 
         <div class="presentation-controls">
@@ -535,6 +618,8 @@
         let currentQuestionIndex = 0;
         let playersListener = null;
         let gameListener = null;
+        let answersListener = null;
+        let totalPlayers = 0;
 
         // Элементы DOM
         const startSection = document.getElementById('startSection');
@@ -551,6 +636,10 @@
         const presentationMode = document.getElementById('presentationMode');
         const presentationQNum = document.getElementById('presentationQNum');
         const presentationQuestion = document.getElementById('presentationQuestion');
+        const presentationCounter = document.getElementById('presentationCounter');
+        const answeredCount = document.getElementById('answeredCount');
+        const totalPlayersCount = document.getElementById('totalPlayersCount');
+        const counterProgressFill = document.getElementById('counterProgressFill');
 
         // ================ ОСНОВНЫЕ ФУНКЦИИ ================
 
@@ -563,6 +652,7 @@
             const code = Math.floor(10000000 + Math.random() * 90000000).toString();
             currentGameId = "game_" + code;
             currentQuestionIndex = 0;
+            totalPlayers = 0;
             
             // Обновить UI
             startSection.style.display = 'none';
@@ -617,8 +707,17 @@
                 currentQuestion: question.id,
                 questionStartTime: Date.now()
             }).then(() => {
+                // Сбросить счетчик
+                answeredCount.textContent = '0';
+                totalPlayersCount.textContent = totalPlayers;
+                counterProgressFill.style.width = '0%';
+                presentationCounter.classList.remove('visible');
+                
                 // Переключить в режим презентации
                 enterPresentationMode(question);
+                
+                // Начать слушать ответы
+                listenToAnswers(question.id);
                 
                 // Обновить счетчик
                 currentQuestionIndex++;
@@ -641,7 +740,7 @@
             presentationMode.classList.add('active');
             
             // Показать вопрос
-            presentationQNum.textContent = currentQuestionIndex;
+            presentationQNum.textContent = currentQuestionIndex + 1;
             
             let questionHTML = `<h2 style="color: white; text-align: center; line-height: 1.4; margin: 0;">${question.text}</h2>`;
             
@@ -653,10 +752,53 @@
             }
             
             presentationQuestion.innerHTML = questionHTML;
+            
+            // Показать счетчик через 1 секунду
+            setTimeout(() => {
+                presentationCounter.classList.add('visible');
+            }, 1000);
+        }
+
+        // ФУНКЦИЯ ДЛЯ ПРОСЛУШКИ ОТВЕТОВ В РЕАЛЬНОМ ВРЕМЕНИ
+        function listenToAnswers(questionId) {
+            // Отписаться от предыдущего слушателя
+            if (answersListener) {
+                answersListener();
+            }
+            
+            // Слушать ответы на текущий вопрос
+            answersListener = db.ref(`games/${currentGameId}/answers/${questionId}`).on('value', snapshot => {
+                const answers = snapshot.val() || {};
+                const answered = Object.keys(answers).length;
+                
+                // Обновить счетчик
+                answeredCount.textContent = answered;
+                
+                // Обновить прогресс-бар
+                if (totalPlayers > 0) {
+                    const percentage = (answered / totalPlayers) * 100;
+                    counterProgressFill.style.width = `${percentage}%`;
+                    
+                    // Анимация при достижении 50% и 100%
+                    if (percentage >= 50 && percentage < 100) {
+                        counterProgressFill.style.background = 'linear-gradient(90deg, var(--warning), var(--accent))';
+                    } else if (percentage >= 100) {
+                        counterProgressFill.style.background = 'linear-gradient(90deg, var(--success), #00ff88)';
+                    } else {
+                        counterProgressFill.style.background = 'linear-gradient(90deg, var(--primary), var(--accent))';
+                    }
+                }
+            });
         }
 
         // ФИКС: ПРАВИЛЬНЫЙ ВЫХОД ИЗ ПРЕЗЕНТАЦИИ
         function exitPresentation() {
+            // Отписаться от слушателя ответов
+            if (answersListener) {
+                answersListener();
+                answersListener = null;
+            }
+            
             // Скрыть режим презентации
             presentationMode.classList.remove('active');
             
@@ -675,6 +817,12 @@
             const questions = window.QUIZ_DATA ? window.QUIZ_DATA.questions : [];
             const question = questions[currentQuestionIndex - 1];
             if (!question) return;
+            
+            // Отписаться от слушателя ответов
+            if (answersListener) {
+                answersListener();
+                answersListener = null;
+            }
             
             // Показать правильный ответ
             presentationQuestion.innerHTML += `
@@ -796,6 +944,7 @@
                 // Сбросить всё
                 currentGameId = null;
                 currentQuestionIndex = 0;
+                totalPlayers = 0;
                 startSection.style.display = 'block';
                 gameControls.style.display = 'none';
                 gameCodeDisplay.textContent = '----';
@@ -807,6 +956,7 @@
                 // Отписаться от слушателей
                 if (playersListener) playersListener();
                 if (gameListener) gameListener();
+                if (answersListener) answersListener();
                 
                 showNotification("Игра сброшена");
             }
@@ -822,7 +972,9 @@
                     ...data
                 }));
                 
-                playerCount.textContent = playerArray.length;
+                totalPlayers = playerArray.length;
+                playerCount.textContent = totalPlayers;
+                totalPlayersCount.textContent = totalPlayers;
                 updatePlayersList(playerArray);
             });
         }
