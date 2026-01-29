@@ -4,9 +4,441 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ученик - ОГЭ Кахут</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        /* ОСНОВНЫЕ СТИЛИ */
+        :root {
+            --primary: #4361ee;
+            --secondary: #3a0ca3;
+            --accent: #4cc9f0;
+            --success: #00ff88;
+            --warning: #ff9e00;
+            --danger: #ff416c;
+            --dark: #1a1a2e;
+            --light: #f8f9fa;
+            --gray: #8f8f8f;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            color: var(--light);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .student-container {
+            width: 100%;
+            max-width: 500px;
+            background: #1e293b;
+            border-radius: 25px;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+            border: 2px solid #334155;
+        }
+        
+        /* ЭКРАНЫ */
+        .screen {
+            display: none;
+            padding: 40px;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .screen.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        /* ЭКРАН ВХОДА */
+        .login-box {
+            text-align: center;
+        }
+        
+        .logo {
+            font-size: 80px;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, var(--accent), var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(5deg); }
+        }
+        
+        .login-box h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, var(--accent), var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .subtitle {
+            color: var(--gray);
+            margin-bottom: 40px;
+            font-size: 1.1rem;
+        }
+        
+        /* ФОРМЫ */
+        .form-group {
+            margin-bottom: 25px;
+            text-align: left;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--accent);
+            font-size: 1rem;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 18px 20px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px solid #334155;
+            border-radius: 12px;
+            color: white;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: rgba(76, 201, 240, 0.15);
+            box-shadow: 0 0 0 4px rgba(76, 201, 240, 0.1);
+        }
+        
+        .code-input-container input {
+            font-family: 'Courier New', monospace;
+            font-size: 1.4rem;
+            letter-spacing: 2px;
+            text-align: center;
+        }
+        
+        .code-hint {
+            color: var(--gray);
+            font-size: 0.9rem;
+            margin-top: 8px;
+            text-align: center;
+        }
+        
+        /* КНОПКИ */
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            padding: 20px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px 0;
+        }
+        
+        .btn-join {
+            background: linear-gradient(45deg, var(--accent), #0077b6);
+            color: white;
+        }
+        
+        .btn-leave {
+            background: linear-gradient(45deg, var(--danger), #ff4b2b);
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            filter: brightness(1.1);
+        }
+        
+        .login-info {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(0, 173, 181, 0.1);
+            border-radius: 12px;
+            text-align: center;
+            color: var(--gray);
+            font-size: 0.95rem;
+        }
+        
+        /* ЭКРАН ОЖИДАНИЯ */
+        .waiting-box {
+            text-align: center;
+        }
+        
+        .loader {
+            width: 70px;
+            height: 70px;
+            border: 5px solid rgba(255, 255, 255, 0.1);
+            border-top: 5px solid var(--accent);
+            border-radius: 50%;
+            margin: 0 auto 25px;
+            animation: spin 1.5s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .waiting-box h2 {
+            color: var(--accent);
+            margin-bottom: 10px;
+            font-size: 1.8rem;
+        }
+        
+        .user-info {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 25px;
+            border-radius: 15px;
+            margin: 30px 0;
+            text-align: left;
+        }
+        
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .info-item:last-child {
+            border-bottom: none;
+        }
+        
+        .info-item span {
+            color: var(--gray);
+        }
+        
+        .info-item strong, .info-item code {
+            color: var(--success);
+            font-size: 1.1rem;
+        }
+        
+        .room-info {
+            margin: 25px 0;
+            color: var(--accent);
+            font-size: 1.1rem;
+        }
+        
+        /* ЭКРАН ВОПРОСА */
+        .question-box {
+            height: 100%;
+        }
+        
+        .question-header {
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            padding: 20px;
+            border-radius: 15px 15px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+        
+        .question-meta {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        
+        .question-type {
+            background: rgba(0, 0, 0, 0.2);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        
+        .question-number {
+            color: white;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+        
+        .question-content {
+            padding: 10px 0;
+        }
+        
+        .question-text {
+            font-size: 1.4rem;
+            color: white;
+            line-height: 1.5;
+            margin-bottom: 35px;
+            text-align: center;
+            padding: 0 10px;
+        }
+        
+        .options {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .option-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px solid #334155;
+            border-radius: 15px;
+            padding: 22px 20px;
+            color: white;
+            font-size: 1.1rem;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .option-btn:hover {
+            background: rgba(0, 173, 181, 0.2);
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+        
+        .option-btn.selected {
+            background: rgba(0, 173, 181, 0.3);
+            border-color: var(--success);
+            transform: scale(1.02);
+        }
+        
+        .option-letter {
+            width: 45px;
+            height: 45px;
+            background: var(--accent);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+        
+        .answer-status {
+            text-align: center;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            margin-top: 20px;
+            color: var(--success);
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        
+        /* ЭКРАН РЕЗУЛЬТАТА */
+        .result-box {
+            text-align: center;
+        }
+        
+        .result-box h2 {
+            color: var(--accent);
+            margin-bottom: 30px;
+            font-size: 1.8rem;
+        }
+        
+        .result-content {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 2px solid var(--accent);
+        }
+        
+        .next-info {
+            color: var(--gray);
+            font-size: 1rem;
+        }
+        
+        .next-info p {
+            margin-bottom: 15px;
+        }
+        
+        /* АДАПТИВНОСТЬ */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .student-container {
+                border-radius: 20px;
+            }
+            
+            .screen {
+                padding: 25px;
+            }
+            
+            .logo {
+                font-size: 60px;
+            }
+            
+            .question-text {
+                font-size: 1.2rem;
+            }
+            
+            .option-btn {
+                padding: 18px 15px;
+                font-size: 1rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .screen {
+                padding: 20px;
+            }
+            
+            .question-header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .question-text {
+                font-size: 1.1rem;
+            }
+            
+            .option-btn {
+                padding: 15px 12px;
+            }
+            
+            .option-letter {
+                width: 40px;
+                height: 40px;
+                font-size: 1rem;
+            }
+        }
+    </style>
 </head>
 <body class="student-page">
     <div class="student-container">
@@ -40,13 +472,13 @@
                         </div>
                     </div>
                     
-                    <button onclick="joinGame()" class="btn join-btn">
-                        🎮 ПОДКЛЮЧИТЬСЯ
+                    <button onclick="joinGame()" class="btn btn-join">
+                        <i class="fas fa-gamepad"></i> ПОДКЛЮЧИТЬСЯ
                     </button>
                     
                     <div class="login-info">
-                        <p>📢 Код игры показывает учитель на доске</p>
-                        <p>📱 Используйте телефон для ответов</p>
+                        <p><i class="fas fa-bullhorn"></i> Код игры показывает учитель на доске</p>
+                        <p><i class="fas fa-mobile-alt"></i> Используйте телефон для ответов</p>
                     </div>
                 </div>
             </div>
@@ -74,8 +506,8 @@
                     <p>👥 Игроков в комнате: <span id="roomPlayers">1</span></p>
                 </div>
                 
-                <button onclick="leaveGame()" class="btn leave-btn">
-                    🚪 ВЫЙТИ
+                <button onclick="leaveGame()" class="btn btn-leave">
+                    <i class="fas fa-sign-out-alt"></i> ВЫЙТИ
                 </button>
             </div>
         </div>
@@ -87,10 +519,6 @@
                     <div class="question-meta">
                         <span class="question-type" id="questionType">ОГЭ</span>
                         <span class="question-number">Вопрос <span id="currentQ">1</span></span>
-                    </div>
-                    <div class="timer-box">
-                        <div class="timer-label">ОСТАЛОСЬ</div>
-                        <div id="studentTimer" class="timer">30</div>
                     </div>
                 </div>
                 
@@ -119,424 +547,426 @@
                 </div>
                 <div class="next-info">
                     <p>Следующий вопрос скоро начнется</p>
-                    <div class="countdown">
-                        <span id="nextCountdown">5</span> сек.
-                    </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Firebase config -->
     <script src="firebase-config.js"></script>
-    <script src="student.js"></script>
 
-    <style>
-        /* СТИЛИ ДЛЯ УЧЕНИКА */
-        .student-page {
-            margin: 0;
-            padding: 0;
-            background: linear-gradient(135deg, #1a1a2e, #16213e);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-family: 'Arial', sans-serif;
+    <script>
+        // ============================================
+        // student.js - ПРОСТАЯ ВЕРСИЯ (без таймеров)
+        // ============================================
+
+        let currentGameId = null;
+        let playerName = null;
+        let currentQuestion = null;
+        let hasAnswered = false;
+        let selectedOption = null;
+
+        // DOM элементы
+        const joinScreen = document.getElementById('joinScreen');
+        const waitingScreen = document.getElementById('waitingScreen');
+        const questionScreen = document.getElementById('questionScreen');
+        const resultScreen = document.getElementById('resultScreen');
+        const playerNameInput = document.getElementById('playerName');
+        const gameCodeInput = document.getElementById('gameCode');
+        const displayName = document.getElementById('displayName');
+        const displayCode = document.getElementById('displayCode');
+        const roomPlayers = document.getElementById('roomPlayers');
+        const questionText = document.getElementById('questionText');
+        const optionsContainer = document.getElementById('optionsContainer');
+        const answerStatus = document.getElementById('answerStatus');
+        const resultContent = document.getElementById('resultContent');
+        const currentQ = document.getElementById('currentQ');
+        const questionType = document.getElementById('questionType');
+
+        // ================ ОСНОВНЫЕ ФУНКЦИИ ================
+
+        function joinGame() {
+            const name = playerNameInput.value.trim();
+            const code = gameCodeInput.value.trim();
+            
+            if (!name || name.length < 2) {
+                alert("Введите имя (минимум 2 символа)");
+                playerNameInput.focus();
+                return;
+            }
+            
+            if (!code || code.length !== 8 || !/^\d+$/.test(code)) {
+                alert("Введите 8 цифр кода игры");
+                gameCodeInput.focus();
+                return;
+            }
+            
+            playerName = name;
+            currentGameId = "game_" + code;
+            
+            console.log(`🎮 Подключаюсь как "${name}" к игре ${code}`);
+            
+            // Проверить игру
+            db.ref(`games/${currentGameId}`).once('value').then(snapshot => {
+                if (!snapshot.exists()) {
+                    alert("Игра не найдена!");
+                    return;
+                }
+                
+                const game = snapshot.val();
+                
+                // Проверить уникальность имени
+                if (game.players && game.players[name]) {
+                    alert("Игрок с таким именем уже есть!");
+                    return;
+                }
+                
+                // Зарегистрироваться
+                const playerData = {
+                    name: name,
+                    joined: Date.now(),
+                    score: 0,
+                    device: /Mobi|Android/i.test(navigator.userAgent) ? "📱 Телефон" : "💻 Компьютер"
+                };
+                
+                db.ref(`games/${currentGameId}/players/${name}`).set(playerData).then(() => {
+                    // Обновить UI
+                    displayName.textContent = name;
+                    displayCode.textContent = code;
+                    
+                    // Переключить экран
+                    switchScreen('waiting');
+                    
+                    // Слушать игру
+                    listenToGame();
+                    
+                    console.log(`✅ Подключен как ${name} к игре ${code}`);
+                    
+                }).catch(error => {
+                    alert("Ошибка: " + error.message);
+                });
+                
+            }).catch(error => {
+                alert("Ошибка сети: " + error.message);
+            });
         }
 
-        .student-container {
-            width: 100%;
-            max-width: 500px;
-            min-height: 100vh;
-            background: #222831;
-            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
-            position: relative;
-            overflow: hidden;
+        function listenToGame() {
+            if (!currentGameId) return;
+            
+            console.log(`👂 Слушаю игру ${currentGameId}`);
+            
+            db.ref(`games/${currentGameId}`).on('value', snapshot => {
+                const game = snapshot.val();
+                if (!game) {
+                    console.log("Игра удалена");
+                    leaveGame();
+                    return;
+                }
+                
+                // Обновить счетчик
+                if (game.players) {
+                    roomPlayers.textContent = Object.keys(game.players).length;
+                }
+                
+                const currentQuestionId = game.currentQuestion;
+                
+                switch (game.status) {
+                    case "lobby":
+                    case "waiting":
+                        handleLobby();
+                        break;
+                        
+                    case "question_active":
+                        if (currentQuestionId && (!currentQuestion || currentQuestion.id !== currentQuestionId || !hasAnswered)) {
+                            handleQuestionActive(game, currentQuestionId);
+                        }
+                        break;
+                        
+                    case "showing_results":
+                        handleShowingResults(game, currentQuestionId);
+                        break;
+                        
+                    case "finished":
+                        handleGameFinished();
+                        break;
+                }
+            }, error => {
+                console.error("Ошибка слушателя:", error);
+            });
         }
 
-        @media (min-width: 768px) {
-            .student-container {
-                min-height: 700px;
-                border-radius: 20px;
-                margin: 20px;
+        function handleLobby() {
+            if (!waitingScreen.classList.contains('active')) {
+                switchScreen('waiting');
+            }
+            
+            if (hasAnswered) {
+                hasAnswered = false;
+                selectedOption = null;
             }
         }
 
-        .screen {
-            display: none;
-            height: 100%;
-            width: 100%;
-            position: absolute;
-            top: 0;
-            left: 0;
+        function handleQuestionActive(game, questionId) {
+            currentQuestion = QUIZ_DATA.questions.find(q => q.id === questionId);
+            if (!currentQuestion) return;
+            
+            hasAnswered = false;
+            selectedOption = null;
+            
+            switchScreen('question');
+            displayQuestion(currentQuestion);
         }
 
-        .screen.active {
-            display: block;
+        function displayQuestion(question) {
+            const questionIndex = QUIZ_DATA.questions.findIndex(q => q.id === question.id) + 1;
+            currentQ.textContent = questionIndex;
+            questionType.textContent = getTypeLabel(question.type);
+            
+            questionText.textContent = question.text;
+            
+            optionsContainer.innerHTML = '';
+            question.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.className = 'option-btn';
+                button.innerHTML = `
+                    <span class="option-letter">${String.fromCharCode(65 + index)}</span>
+                    <span class="option-text">${option}</span>
+                `;
+                button.onclick = () => selectAnswer(index, button);
+                optionsContainer.appendChild(button);
+            });
+            
+            answerStatus.textContent = "Выберите вариант ответа";
+            answerStatus.style.color = "#00ff88";
+            
+            document.querySelectorAll('.option-btn').forEach(btn => {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.classList.remove('selected');
+            });
         }
 
-        /* ЭКРАН ВХОДА */
-        .login-box {
-            padding: 30px;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
+        function selectAnswer(answerIndex, buttonElement) {
+            if (hasAnswered || !currentQuestion || !currentGameId || !playerName) return;
+            
+            selectedOption = answerIndex;
+            
+            document.querySelectorAll('.option-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            buttonElement.classList.add('selected');
+            
+            submitAnswer(answerIndex);
         }
 
-        .logo {
-            font-size: 60px;
-            text-align: center;
-            margin-bottom: 10px;
-            animation: bounce 2s infinite;
+        function submitAnswer(answerIndex) {
+            if (hasAnswered) return;
+            
+            hasAnswered = true;
+            
+            // Блокировать кнопки
+            document.querySelectorAll('.option-btn').forEach(btn => {
+                btn.disabled = true;
+                btn.style.opacity = '0.6';
+            });
+            
+            // Простая проверка правильности
+            const isCorrect = (answerIndex === currentQuestion.correct);
+            
+            const answerData = {
+                answerIndex: answerIndex,
+                isCorrect: isCorrect,
+                timestamp: Date.now()
+            };
+            
+            db.ref(`games/${currentGameId}/answers/${currentQuestion.id}/${playerName}`).set(answerData).then(() => {
+                if (isCorrect) {
+                    answerStatus.innerHTML = '<i class="fas fa-check-circle"></i> Правильно!';
+                    answerStatus.style.color = '#00ff88';
+                    
+                    db.ref(`games/${currentGameId}/players/${playerName}/score`).transaction(score => {
+                        return (score || 0) + (currentQuestion.points || 5);
+                    });
+                } else {
+                    answerStatus.innerHTML = '<i class="fas fa-times-circle"></i> Неправильно!';
+                    answerStatus.style.color = '#ff416c';
+                }
+            }).catch(error => {
+                answerStatus.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Ошибка';
+                answerStatus.style.color = '#ff9e00';
+            });
         }
 
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
+        function handleShowingResults(game, questionId) {
+            if (!currentQuestion || currentQuestion.id !== questionId) {
+                currentQuestion = QUIZ_DATA.questions.find(q => q.id === questionId);
+            }
+            
+            if (!currentQuestion) return;
+            
+            switchScreen('result');
+            
+            db.ref(`games/${currentGameId}/answers/${currentQuestion.id}/${playerName}`).once('value').then(snapshot => {
+                const userAnswer = snapshot.val();
+                showResult(userAnswer, currentQuestion);
+            }).catch(() => {
+                showResult(null, currentQuestion);
+            });
         }
 
-        .login-box h1 {
-            text-align: center;
-            color: #00adb5;
-            margin: 0 0 5px 0;
-            font-size: 32px;
+        function showResult(userAnswer, question) {
+            let resultHTML = '';
+            
+            const correctAnswerText = question.options[question.correct] || `Вариант ${question.correct + 1}`;
+            
+            if (userAnswer && userAnswer.answerIndex >= 0) {
+                const isCorrect = userAnswer.isCorrect;
+                const userAnswerText = question.options[userAnswer.answerIndex] || `Вариант ${userAnswer.answerIndex + 1}`;
+                
+                resultHTML = `
+                    <div style="color: ${isCorrect ? '#00ff88' : '#ff416c'}; font-size: 1.5rem; margin-bottom: 20px;">
+                        <i class="fas ${isCorrect ? 'fa-check-circle' : 'fa-times-circle'}"></i>
+                        ${isCorrect ? 'ПРАВИЛЬНО!' : 'НЕПРАВИЛЬНО'}
+                    </div>
+                    <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 12px; margin: 15px 0;">
+                        <div style="color: #8f8f8f; margin-bottom: 8px;">Ваш ответ:</div>
+                        <div style="color: white; font-size: 1.2rem;">${userAnswerText}</div>
+                    </div>
+                    <div style="background: rgba(0,255,136,0.1); padding: 20px; border-radius: 12px; margin: 15px 0; border: 2px solid #00ff88;">
+                        <div style="color: #8f8f8f; margin-bottom: 8px;">Правильный ответ:</div>
+                        <div style="color: #00ff88; font-size: 1.2rem; font-weight: bold;">${correctAnswerText}</div>
+                    </div>
+                    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+                        <div style="color: #8f8f8f; font-style: italic;">${question.explanation}</div>
+                    </div>
+                `;
+            } else {
+                resultHTML = `
+                    <div style="color: #ff9e00; font-size: 1.5rem; margin-bottom: 20px;">
+                        <i class="fas fa-clock"></i> ВЫ НЕ УСПЕЛИ ОТВЕТИТЬ
+                    </div>
+                    <div style="background: rgba(0,255,136,0.1); padding: 20px; border-radius: 12px; margin: 15px 0; border: 2px solid #00ff88;">
+                        <div style="color: #8f8f8f; margin-bottom: 8px;">Правильный ответ:</div>
+                        <div style="color: #00ff88; font-size: 1.2rem; font-weight: bold;">${correctAnswerText}</div>
+                    </div>
+                    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+                        <div style="color: #8f8f8f; font-style: italic;">${question.explanation}</div>
+                    </div>
+                `;
+            }
+            
+            resultContent.innerHTML = resultHTML;
         }
 
-        .subtitle {
-            text-align: center;
-            color: #8f8f8f;
-            margin-bottom: 30px;
+        function handleGameFinished() {
+            switchScreen('result');
+            
+            db.ref(`games/${currentGameId}/players/${playerName}`).once('value').then(snapshot => {
+                const playerData = snapshot.val();
+                
+                resultContent.innerHTML = `
+                    <div style="text-align: center;">
+                        <div style="font-size: 2rem; color: #00adb5; margin-bottom: 20px;">
+                            <i class="fas fa-flag-checkered"></i> ИГРА ЗАВЕРШЕНА
+                        </div>
+                        <div style="background: rgba(255,255,255,0.05); padding: 25px; border-radius: 15px; margin: 20px 0;">
+                            <div style="color: #00ff88; font-size: 2.5rem; margin-bottom: 10px;">${playerData.score || 0} очков</div>
+                            <div style="color: #8f8f8f;">Ваш финальный результат</div>
+                        </div>
+                        <button onclick="location.reload()" style="
+                            background: linear-gradient(45deg, #00adb5, #0077b6);
+                            color: white;
+                            border: none;
+                            padding: 18px 35px;
+                            border-radius: 12px;
+                            font-size: 1.1rem;
+                            font-weight: bold;
+                            cursor: pointer;
+                            margin-top: 20px;
+                            transition: all 0.3s ease;
+                        ">
+                            <i class="fas fa-redo"></i> НАЧАТЬ ЗАНОВО
+                        </button>
+                    </div>
+                `;
+            });
         }
 
-        .form-group {
-            margin-bottom: 25px;
+        function leaveGame() {
+            console.log("🚪 Выхожу из игры...");
+            
+            if (currentGameId && playerName) {
+                try {
+                    db.ref(`games/${currentGameId}/players/${playerName}`).remove();
+                } catch (e) {}
+            }
+            
+            resetGameState();
+            switchScreen('join');
         }
 
-        .form-group label {
-            display: block;
-            color: #00adb5;
-            margin-bottom: 8px;
-            font-weight: bold;
+        function resetGameState() {
+            currentGameId = null;
+            playerName = null;
+            currentQuestion = null;
+            hasAnswered = false;
+            selectedOption = null;
+            playerNameInput.value = '';
+            gameCodeInput.value = '';
         }
 
-        .form-group input {
-            width: 100%;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid #393e46;
-            border-radius: 10px;
-            color: white;
-            font-size: 18px;
-            transition: all 0.3s;
+        function switchScreen(screenName) {
+            [joinScreen, waitingScreen, questionScreen, resultScreen].forEach(screen => {
+                screen.classList.remove('active');
+            });
+            
+            switch(screenName) {
+                case 'join':
+                    joinScreen.classList.add('active');
+                    break;
+                case 'waiting':
+                    waitingScreen.classList.add('active');
+                    break;
+                case 'question':
+                    questionScreen.classList.add('active');
+                    break;
+                case 'result':
+                    resultScreen.classList.add('active');
+                    break;
+            }
         }
 
-        .form-group input:focus {
-            outline: none;
-            border-color: #00adb5;
-            box-shadow: 0 0 0 3px rgba(0, 173, 181, 0.2);
+        function getTypeLabel(type) {
+            const labels = {
+                oral: "🎤 Устное",
+                syntax: "📝 Синтаксис",
+                punctuation: "🔤 Пунктуация",
+                spelling: "✍️ Орфография",
+                reading: "📖 Текст",
+                morphology: "🔡 Морфология",
+                word_formation: "🔄 Словообразование",
+                stylistics: "🎨 Стилистика"
+            };
+            return labels[type] || type;
         }
 
-        .code-input-container input {
-            font-family: 'Courier New', monospace;
-            font-size: 22px;
-            letter-spacing: 2px;
-            text-align: center;
-        }
-
-        .code-hint {
-            color: #8f8f8f;
-            font-size: 12px;
-            margin-top: 5px;
-            text-align: center;
-        }
-
-        .btn {
-            display: block;
-            width: 100%;
-            padding: 18px;
-            border: none;
-            border-radius: 10px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin: 10px 0;
-        }
-
-        .join-btn {
-            background: linear-gradient(135deg, #00ff88, #00b4d8);
-            color: white;
-        }
-
-        .join-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 20px rgba(0, 255, 136, 0.3);
-        }
-
-        .login-info {
-            margin-top: 30px;
-            padding: 15px;
-            background: rgba(0, 173, 181, 0.1);
-            border-radius: 10px;
-            text-align: center;
-            color: #8f8f8f;
-            font-size: 14px;
-        }
-
-        .login-info p {
-            margin: 5px 0;
-        }
-
-        /* ЭКРАН ОЖИДАНИЯ */
-        .waiting-box {
-            padding: 30px;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-        }
-
-        .loader {
-            width: 60px;
-            height: 60px;
-            border: 5px solid rgba(0, 173, 181, 0.3);
-            border-top: 5px solid #00adb5;
-            border-radius: 50%;
-            margin-bottom: 20px;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .waiting-box h2 {
-            color: #00adb5;
-            margin-bottom: 10px;
-        }
-
-        .waiting-box p {
-            color: #8f8f8f;
-            margin-bottom: 30px;
-        }
-
-        .user-info {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 20px;
-            border-radius: 10px;
-            margin: 20px 0;
-            width: 100%;
-            max-width: 300px;
-        }
-
-        .info-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .info-item:last-child {
-            border-bottom: none;
-        }
-
-        .info-item span {
-            color: #8f8f8f;
-        }
-
-        .info-item strong, .info-item code {
-            color: #00ff88;
-            font-size: 16px;
-        }
-
-        .room-info {
-            margin: 20px 0;
-            color: #00adb5;
-            font-size: 18px;
-        }
-
-        .leave-btn {
-            background: rgba(255, 65, 108, 0.2);
-            color: #ff416c;
-            border: 2px solid #ff416c;
-            width: auto;
-            padding: 12px 30px;
-        }
-
-        .leave-btn:hover {
-            background: #ff416c;
-            color: white;
-        }
-
-        /* ЭКРАН ВОПРОСА */
-        .question-box {
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .question-header {
-            background: linear-gradient(90deg, #00adb5, #0077b6);
-            padding: 15px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .question-meta {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-        }
-
-        .question-type {
-            background: rgba(0, 0, 0, 0.3);
-            color: white;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 14px;
-        }
-
-        .question-number {
-            color: white;
-            font-size: 16px;
-        }
-
-        .timer-box {
-            text-align: center;
-        }
-
-        .timer-label {
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.8);
-            margin-bottom: 5px;
-        }
-
-        .timer {
-            font-size: 32px;
-            font-weight: bold;
-            font-family: 'Courier New', monospace;
-            color: #00ff88;
-        }
-
-        .question-content {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .question-text {
-            font-size: 22px;
-            color: white;
-            line-height: 1.5;
-            margin-bottom: 30px;
-            text-align: center;
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-
-        .options {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .option-btn {
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid #393e46;
-            border-radius: 15px;
-            padding: 20px;
-            color: white;
-            font-size: 18px;
-            text-align: left;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .option-btn:hover {
-            background: rgba(0, 173, 181, 0.2);
-            border-color: #00adb5;
-            transform: translateY(-2px);
-        }
-
-        .option-btn.selected {
-            background: rgba(0, 173, 181, 0.3);
-            border-color: #00ff88;
-        }
-
-        .option-letter {
-            width: 40px;
-            height: 40px;
-            background: #00adb5;
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 20px;
-            flex-shrink: 0;
-        }
-
-        .answer-status {
-            text-align: center;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            margin-top: 10px;
-            color: #00ff88;
-            font-weight: bold;
-        }
-
-        /* ЭКРАН РЕЗУЛЬТАТА */
-        .result-box {
-            padding: 30px;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            text-align: center;
-        }
-
-        .result-box h2 {
-            color: #00adb5;
-            margin-bottom: 30px;
-        }
-
-        .result-content {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 30px;
-            border: 2px solid #00adb5;
-        }
-
-        .next-info {
-            color: #8f8f8f;
-        }
-
-        .countdown {
-            display: inline-block;
-            margin-left: 10px;
-            background: #00adb5;
-            color: white;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-weight: bold;
-        }
-    </style>
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("✅ Student app loaded");
+            
+            // Автофокус
+            playerNameInput.focus();
+            
+            // Enter для удобства
+            playerNameInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') gameCodeInput.focus();
+            });
+            
+            gameCodeInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') joinGame();
+            });
+        });
+    </script>
 </body>
 </html>
