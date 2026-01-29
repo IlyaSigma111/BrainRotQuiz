@@ -29,14 +29,15 @@
             min-height: 100vh;
         }
         
-        .teacher-page {
+        /* ФИКСИРОВАННАЯ СТРУКТУРА - ОДИН MAIN INTERFACE */
+        #mainInterface {
             display: flex;
             flex-direction: column;
             height: 100vh;
-            overflow: hidden;
+            width: 100%;
         }
         
-        /* ШАПКА */
+        /* ШАПКА - ВСЕГДА СВЕРХУ */
         .teacher-header {
             background: linear-gradient(90deg, var(--dark), #16213e);
             padding: 20px 30px;
@@ -46,6 +47,8 @@
             border-bottom: 3px solid var(--accent);
             box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
             flex-shrink: 0;
+            position: relative;
+            z-index: 10;
         }
         
         .header-left h1 {
@@ -63,7 +66,7 @@
             font-size: 0.9rem;
         }
         
-        /* КОД ИГРЫ */
+        /* КОД ИГРЫ В ШАПКЕ */
         .game-code-box {
             background: rgba(0, 173, 181, 0.15);
             border: 2px solid #00adb5;
@@ -95,13 +98,14 @@
             align-items: center;
         }
         
-        /* ОСНОВНОЙ КОНТЕНТ */
+        /* ОСНОВНОЙ КОНТЕНТ - ЗАНИМАЕТ ВСЁ ОСТАВШЕЕСЯ ПРОСТРАНСТВО */
         .main-content {
             display: flex;
             flex: 1;
             padding: 20px;
             gap: 20px;
             overflow: hidden;
+            background: #0f172a;
         }
         
         .left-column {
@@ -125,6 +129,12 @@
             padding: 25px;
             border: 1px solid #334155;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            flex-shrink: 0;
+        }
+        
+        .scrollable-panel {
+            flex: 1;
+            overflow-y: auto;
         }
         
         .panel h2 {
@@ -203,32 +213,12 @@
             font-size: 0.95rem;
         }
         
-        .info-item {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-        
-        .info-label {
-            color: var(--gray);
-            font-size: 0.85rem;
-        }
-        
-        .info-value {
-            color: var(--light);
-            font-weight: bold;
-            font-size: 1.1rem;
-        }
-        
         /* СПИСОК ИГРОКОВ */
         .players-list {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
             gap: 15px;
             margin-top: 15px;
-            max-height: 300px;
-            overflow-y: auto;
-            padding-right: 10px;
         }
         
         .player-card {
@@ -238,12 +228,6 @@
             padding: 20px;
             text-align: center;
             transition: all 0.3s ease;
-        }
-        
-        .player-card:hover {
-            transform: translateY(-2px);
-            border-color: var(--success);
-            background: rgba(0, 255, 136, 0.1);
         }
         
         .player-avatar {
@@ -260,24 +244,7 @@
             color: white;
         }
         
-        .player-name {
-            font-weight: bold;
-            color: white;
-            margin-bottom: 5px;
-            font-size: 1.1rem;
-        }
-        
-        .player-score {
-            color: var(--success);
-            font-size: 1.2rem;
-            font-weight: bold;
-        }
-        
         /* СТАТИСТИКА */
-        .stats-content {
-            margin-top: 15px;
-        }
-        
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -292,54 +259,15 @@
             text-align: center;
         }
         
-        .stat-value {
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: var(--success);
-            margin-bottom: 5px;
-        }
-        
-        .stat-label {
-            color: var(--gray);
-            font-size: 0.9rem;
-        }
-        
         /* ВОПРОСЫ */
         .questions-list {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
             gap: 12px;
             margin-top: 15px;
-            max-height: 250px;
-            overflow-y: auto;
-            padding-right: 10px;
         }
         
-        .question-item {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            padding: 15px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border: 2px solid transparent;
-        }
-        
-        .question-item:hover {
-            background: rgba(0, 173, 181, 0.1);
-        }
-        
-        .question-item.active {
-            border-color: var(--warning);
-            background: rgba(255, 158, 0, 0.1);
-        }
-        
-        .question-number {
-            font-weight: bold;
-            color: var(--accent);
-            font-size: 1.1rem;
-        }
-        
-        /* РЕЖИМ ПРЕЗЕНТАЦИИ */
+        /* РЕЖИМ ПРЕЗЕНТАЦИИ - ПОЛНОСТЬЮ ОТДЕЛЬНЫЙ ЭКРАН */
         .presentation-mode {
             position: fixed;
             top: 0;
@@ -348,8 +276,12 @@
             bottom: 0;
             background: #0a0a1a;
             z-index: 1000;
-            display: flex;
+            display: none; /* СКРЫТ ПО УМОЛЧАНИЮ */
             flex-direction: column;
+        }
+        
+        .presentation-mode.active {
+            display: flex;
             animation: fadeIn 0.3s ease;
         }
         
@@ -365,26 +297,6 @@
             justify-content: space-between;
             align-items: center;
             border-bottom: 3px solid var(--success);
-        }
-        
-        .presentation-info {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-        
-        .presentation-label {
-            font-size: 1.2rem;
-            color: white;
-            font-weight: bold;
-        }
-        
-        .question-counter {
-            font-size: 1.1rem;
-            color: white;
-            background: rgba(0, 0, 0, 0.2);
-            padding: 8px 16px;
-            border-radius: 8px;
         }
         
         .presentation-content {
@@ -404,15 +316,6 @@
             border-radius: 20px;
             padding: 40px;
             border: 3px solid var(--accent);
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
-        }
-        
-        .presentation-question h2 {
-            font-size: 2rem;
-            color: white;
-            text-align: center;
-            line-height: 1.4;
-            margin: 0 0 30px 0;
         }
         
         .presentation-controls {
@@ -422,12 +325,6 @@
             justify-content: center;
             gap: 20px;
             align-items: center;
-        }
-        
-        .presentation-controls .btn {
-            min-width: 180px;
-            padding: 18px 25px;
-            font-size: 1.1rem;
         }
         
         /* АДАПТИВНОСТЬ */
@@ -453,14 +350,13 @@
                 padding: 15px;
             }
             
-            .header-buttons {
-                width: 100%;
-                justify-content: center;
+            .presentation-question {
+                padding: 20px;
+                margin: 0 15px;
             }
             
             .presentation-question h2 {
                 font-size: 1.5rem;
-                padding: 0 15px;
             }
             
             .presentation-controls {
@@ -471,29 +367,6 @@
             .presentation-controls .btn {
                 width: 100%;
             }
-        }
-        
-        /* УВЕДОМЛЕНИЯ */
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: linear-gradient(45deg, var(--accent), var(--primary));
-            color: white;
-            padding: 15px 25px;
-            border-radius: 12px;
-            font-weight: 600;
-            z-index: 10000;
-            animation: slideInRight 0.3s ease;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        @keyframes slideInRight {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
         }
         
         /* ПУСТЫЕ СОСТОЯНИЯ */
@@ -508,10 +381,25 @@
             margin-bottom: 15px;
             opacity: 0.5;
         }
+        
+        /* СКРОЛЛБАР */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 4px;
+        }
     </style>
 </head>
-<body class="teacher-page">
-    <!-- ОСНОВНОЙ ИНТЕРФЕЙС -->
+<body>
+    <!-- ОСНОВНОЙ ИНТЕРФЕЙС - ВСЕГДА НА ЭКРАНЕ -->
     <div id="mainInterface">
         <!-- ШАПКА -->
         <header class="teacher-header">
@@ -575,7 +463,7 @@
                 </div>
 
                 <!-- ИГРОКИ -->
-                <div class="panel">
+                <div class="panel scrollable-panel">
                     <h2><i class="fas fa-users"></i> ИГРОКИ В ЛОББИ</h2>
                     <div id="playersList" class="players-list">
                         <div class="empty-state">
@@ -600,7 +488,7 @@
                 </div>
 
                 <!-- ВСЕ ВОПРОСЫ -->
-                <div class="panel">
+                <div class="panel scrollable-panel">
                     <h2><i class="fas fa-list-ol"></i> ВСЕ ВОПРОСЫ (30)</h2>
                     <div id="questionsList" class="questions-list">
                         <!-- Вопросы загрузятся через JS -->
@@ -610,8 +498,8 @@
         </div>
     </div>
 
-    <!-- РЕЖИМ ПРЕЗЕНТАЦИИ -->
-    <div id="presentationMode" class="presentation-mode" style="display: none;">
+    <!-- РЕЖИМ ПРЕЗЕНТАЦИИ - ПОЛНОСТЬЮ ОТДЕЛЬНЫЙ ЭКРАН -->
+    <div id="presentationMode" class="presentation-mode">
         <div class="presentation-header">
             <div class="presentation-info">
                 <span class="presentation-label">РЕЖИМ ПРЕЗЕНТАЦИИ</span>
@@ -640,7 +528,7 @@
 
     <script>
         // ============================================
-        // teacher.js - КОРОТКАЯ ВЕРСИЯ (без таймеров)
+        // teacher.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
         // ============================================
 
         let currentGameId = null;
@@ -744,24 +632,43 @@
             });
         }
 
+        // ФИКС: ПРАВИЛЬНОЕ ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ
         function enterPresentationMode(question) {
             // Скрыть основной интерфейс
             mainInterface.style.display = 'none';
-            presentationMode.style.display = 'flex';
+            
+            // Показать режим презентации
+            presentationMode.classList.add('active');
             
             // Показать вопрос
             presentationQNum.textContent = currentQuestionIndex;
             
-            let questionHTML = `<h2>${question.text}</h2>`;
+            let questionHTML = `<h2 style="color: white; text-align: center; line-height: 1.4; margin: 0;">${question.text}</h2>`;
             
             // Если вопрос длинный
             if (question.text.length > 200) {
                 questionHTML = `<div style="max-height: 400px; overflow-y: auto; padding-right: 20px;">
-                    <h2>${question.text}</h2>
+                    <h2 style="color: white; text-align: center; line-height: 1.4; margin: 0;">${question.text}</h2>
                 </div>`;
             }
             
             presentationQuestion.innerHTML = questionHTML;
+        }
+
+        // ФИКС: ПРАВИЛЬНЫЙ ВЫХОД ИЗ ПРЕЗЕНТАЦИИ
+        function exitPresentation() {
+            // Скрыть режим презентации
+            presentationMode.classList.remove('active');
+            
+            // Показать основной интерфейс
+            mainInterface.style.display = 'flex';
+            
+            // Обновить статус игры
+            if (currentGameId) {
+                db.ref('games/' + currentGameId).update({
+                    status: "lobby"
+                });
+            }
         }
 
         function showAnswerPresentation() {
@@ -820,7 +727,7 @@
             const percentage = total > 0 ? Math.round((correct / total) * 100) : 0;
             
             // Обновить статистику в режиме презентации
-            if (presentationMode.style.display !== 'none') {
+            if (presentationMode.classList.contains('active')) {
                 presentationQuestion.innerHTML += `
                     <div style="margin-top: 25px; padding: 20px; background: rgba(67, 97, 238, 0.1); border-radius: 15px; border: 2px solid #4361ee;">
                         <h3 style="color: #4361ee; margin-top: 0; font-size: 1.3rem;">📊 СТАТИСТИКА ОТВЕТОВ:</h3>
@@ -878,19 +785,6 @@
             });
             
             return stats;
-        }
-
-        function exitPresentation() {
-            // Вернуться к основному интерфейсу
-            mainInterface.style.display = 'flex';
-            presentationMode.style.display = 'none';
-            
-            // Обновить статус игры
-            if (currentGameId) {
-                db.ref('games/' + currentGameId).update({
-                    status: "lobby"
-                });
-            }
         }
 
         function resetGame() {
@@ -1006,6 +900,57 @@
                 }, 300);
             }, 3000);
         }
+
+        // Создаем стиль для уведомления
+        const style = document.createElement('style');
+        style.textContent = `
+            .notification {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: linear-gradient(45deg, #4cc9f0, #4361ee);
+                color: white;
+                padding: 15px 25px;
+                border-radius: 12px;
+                font-weight: 600;
+                z-index: 10000;
+                animation: slideInRight 0.3s ease;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            
+            @keyframes slideInRight {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            
+            .question-item {
+                background: rgba(255, 255, 255, 0.05);
+                border-radius: 10px;
+                padding: 15px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                border: 2px solid transparent;
+            }
+            
+            .question-item:hover {
+                background: rgba(0, 173, 181, 0.1);
+            }
+            
+            .question-item.active {
+                border-color: var(--warning);
+                background: rgba(255, 158, 0, 0.1);
+            }
+            
+            .question-number {
+                font-weight: bold;
+                color: var(--accent);
+                font-size: 1.1rem;
+            }
+        `;
+        document.head.appendChild(style);
 
         // Инициализация
         document.addEventListener('DOMContentLoaded', function() {
