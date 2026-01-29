@@ -65,13 +65,6 @@
                 font-size: 16px !important;
                 min-height: 50px;
             }
-            
-            /* Увеличиваем область клика для подписи */
-            #moderatorSignature {
-                padding: 5px 10px;
-                display: inline-block;
-                margin: 5px 0;
-            }
         }
         
         @media (max-width: 480px) {
@@ -89,23 +82,6 @@
             }
         }
         
-        /* Анимации для мобильных */
-        @media (prefers-reduced-motion: no-preference) {
-            .role-card:hover {
-                transform: translateY(-5px) scale(1.02);
-            }
-        }
-        
-        /* Лучшая поддержка сенсорных устройств */
-        .btn, .role-card, .step {
-            -webkit-tap-highlight-color: transparent;
-        }
-        
-        /* Предотвращение масштабирования при двойном тапе */
-        * {
-            touch-action: manipulation;
-        }
-        
         /* СТИЛИ ДЛЯ ПАНЕЛИ МОДЕРАТОРА */
         #moderatorPanel {
             position: fixed;
@@ -117,7 +93,7 @@
             z-index: 10000;
             display: none;
             flex-direction: column;
-            padding: 20px;
+            padding: 15px;
         }
         
         #moderatorPanel.active {
@@ -126,18 +102,18 @@
         
         .moderator-header {
             background: linear-gradient(90deg, #ff9e00, #ff6d00);
-            padding: 15px 20px;
+            padding: 12px 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             border-radius: 10px 10px 0 0;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
         
         .moderator-header h2 {
             color: white;
             margin: 0;
-            font-size: 20px;
+            font-size: 18px;
             display: flex;
             align-items: center;
             gap: 10px;
@@ -147,10 +123,10 @@
             background: #ff416c;
             color: white;
             border: none;
-            width: 40px;
-            height: 40px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
-            font-size: 20px;
+            font-size: 18px;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -162,80 +138,132 @@
             overflow-y: auto;
             background: #1a1a2e;
             border-radius: 10px;
-            padding: 20px;
-            display: grid;
-            grid-template-columns: 2fr 1fr;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
             gap: 20px;
         }
         
-        @media (max-width: 768px) {
-            .moderator-content {
-                grid-template-columns: 1fr;
-            }
-        }
-        
-        .games-list, .moderator-controls {
+        .moderator-section {
             background: #222831;
             border-radius: 10px;
             padding: 15px;
             border: 2px solid #393e46;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
         }
         
-        .games-list h3, .moderator-controls h3 {
+        .moderator-section h3 {
             color: #ff9e00;
             margin-top: 0;
             margin-bottom: 15px;
             font-size: 16px;
         }
         
-        .game-item {
+        .players-list-container {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
+        }
+        
+        .player-item {
             background: rgba(255, 255, 255, 0.05);
             border-radius: 8px;
             padding: 12px;
-            margin-bottom: 10px;
-            border-left: 4px solid #00adb5;
-        }
-        
-        .game-info {
-            display: flex;
-            justify-content: space-between;
             margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-left: 4px solid #00adb5;
+            transition: all 0.3s;
         }
         
-        .game-code {
-            font-family: 'Courier New', monospace;
+        .player-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+        
+        .player-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+        
+        .player-avatar {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #00adb5, #00ff88);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-weight: bold;
-            color: #00ff88;
-        }
-        
-        .game-status {
-            background: #393e46;
             color: white;
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-size: 12px;
+            font-size: 14px;
         }
         
-        .game-status.lobby { background: #00adb5; }
-        .game-status.active { background: #ff9e00; }
-        .game-status.finished { background: #ff416c; }
+        .player-details {
+            flex: 1;
+        }
         
-        .players-count {
+        .player-name {
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+        
+        .player-meta {
             color: #8f8f8f;
+            font-size: 11px;
+        }
+        
+        .kick-btn {
+            background: rgba(255, 65, 108, 0.1);
+            border: 1px solid #ff416c;
+            color: #ff416c;
+            padding: 6px 12px;
+            border-radius: 6px;
             font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+        
+        .kick-btn:hover {
+            background: #ff416c;
+            color: white;
+            transform: scale(1.05);
+        }
+        
+        .empty-players {
+            text-align: center;
+            padding: 30px 15px;
+            color: #8f8f8f;
+        }
+        
+        .empty-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+            opacity: 0.5;
+        }
+        
+        .moderator-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
         }
         
         .moderator-btn {
-            display: block;
-            width: 100%;
-            padding: 12px;
-            margin: 8px 0;
+            flex: 1;
+            padding: 10px;
             background: rgba(255, 255, 255, 0.1);
             border: 2px solid #ff9e00;
             color: white;
             border-radius: 8px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: bold;
             text-align: center;
             transition: all 0.3s;
@@ -246,28 +274,15 @@
             transform: translateY(-2px);
         }
         
-        .moderator-btn.delete {
+        .moderator-btn.logout {
             border-color: #ff416c;
             color: #ff416c;
         }
         
-        .moderator-btn.delete:hover {
+        .moderator-btn.logout:hover {
             background: rgba(255, 65, 108, 0.3);
         }
         
-        .empty-games {
-            text-align: center;
-            padding: 30px;
-            color: #8f8f8f;
-        }
-        
-        .empty-icon {
-            font-size: 40px;
-            margin-bottom: 10px;
-            opacity: 0.5;
-        }
-        
-        /* Стиль для ссылки модератора в футере */
         .moderator-link {
             color: #00ff88;
             text-decoration: underline;
@@ -560,61 +575,40 @@
                 ">
                     <i class="fab fa-js"></i> JavaScript
                 </span>
-                <span class="tech-item" style="
-                    background: rgba(255, 255, 255, 0.05);
-                    padding: 5px 10px;
-                    border-radius: 20px;
-                    font-size: 12px;
-                ">
-                    <i class="fas fa-cloud"></i> Cloud Storage
-                </span>
             </div>
             <p class="mt-md" style="margin-top: 15px;">
                 © 2026 Система подготовки к ОГЭ. 
                 <span id="moderatorSignature" class="moderator-link">
-                    <i class="fas fa-user-shield"></i> Режим модератора
+                    <i class="fas fa-user-shield"></i> Панель модератора
                 </span>
-            </p>
-            <p style="color: #8f8f8f; font-size: 12px; margin-top: 10px;">
-                Для доступа введите пароль: <code style="color: #00ff88;">JojoTop1</code>
             </p>
         </footer>
     </div>
 
-    <!-- ПАНЕЛЬ МОДЕРАТОРА (изначально скрыта) -->
+    <!-- ПАНЕЛЬ МОДЕРАТОРА -->
     <div id="moderatorPanel">
         <div class="moderator-header">
-            <h2><i class="fas fa-user-shield"></i> ПАНЕЛЬ АДМИНИСТРАТОРА</h2>
+            <h2><i class="fas fa-user-shield"></i> ПАНЕЛЬ МОДЕРАТОРА</h2>
             <button class="close-moderator" onclick="closeModeratorPanel()">×</button>
         </div>
         
         <div class="moderator-content">
-            <div class="games-list">
-                <h3>🎮 АКТИВНЫЕ ИГРЫ</h3>
-                <div id="moderatorGamesList">
-                    <div class="empty-games">
-                        <div class="empty-icon">🎮</div>
-                        <p>Активных игр нет</p>
+            <div class="moderator-section">
+                <h3>👥 ВСЕ ИГРОКИ В АКТИВНЫХ ИГРАХ</h3>
+                <div class="players-list-container" id="allPlayersList">
+                    <div class="empty-players">
+                        <div class="empty-icon">👤</div>
+                        <p>Нет активных игроков</p>
                     </div>
                 </div>
             </div>
             
             <div class="moderator-controls">
-                <h3>⚙️ УПРАВЛЕНИЕ</h3>
-                <button class="moderator-btn" onclick="reloadGamesList()">
+                <button class="moderator-btn" onclick="reloadPlayersList()">
                     🔄 Обновить список
                 </button>
-                <button class="moderator-btn" onclick="viewAllPlayers()">
-                    👥 Все игроки
-                </button>
-                <button class="moderator-btn" onclick="checkBadNicknames()">
-                    🔍 Проверить ники
-                </button>
-                <button class="moderator-btn" onclick="clearOldGames()">
-                    🗑️ Очистить старые игры
-                </button>
-                <button class="moderator-btn delete" onclick="logoutModerator()">
-                    🚪 Выйти из режима
+                <button class="moderator-btn logout" onclick="logoutModerator()">
+                    🚪 Выйти
                 </button>
             </div>
         </div>
@@ -628,6 +622,7 @@
         const moderatorPassword = "JojoTop1";
         let moderatorLoggedIn = false;
         let gamesListener = null;
+        let allPlayers = [];
         
         // Анимация для логотипа
         const logo = document.querySelector('.logo');
@@ -648,7 +643,7 @@
             if (moderatorLoggedIn) {
                 // Если уже залогинен, показываем панель
                 document.getElementById('moderatorPanel').classList.add('active');
-                loadGamesList();
+                loadAllPlayers();
             } else {
                 // Если нет, запрашиваем пароль
                 showModeratorLogin();
@@ -657,12 +652,12 @@
         
         // Показать окно входа для модератора
         function showModeratorLogin() {
-            const password = prompt("🔧 Введите пароль администратора:");
+            const password = prompt("🔧 Введите пароль модератора:");
             if (password === moderatorPassword) {
                 moderatorLoggedIn = true;
                 document.getElementById('moderatorPanel').classList.add('active');
-                loadGamesList();
-                showNotification("✅ Вы вошли как администратор");
+                loadAllPlayers();
+                showNotification("✅ Вы вошли как модератор");
             } else if (password !== null) {
                 alert("❌ Неверный пароль!");
             }
@@ -673,8 +668,8 @@
             document.getElementById('moderatorPanel').classList.remove('active');
         }
         
-        // Загрузить список активных игр
-        function loadGamesList() {
+        // Загрузить всех игроков из всех игр
+        function loadAllPlayers() {
             if (!window.db) {
                 console.error("Firebase не загружен");
                 return;
@@ -685,272 +680,125 @@
                 gamesListener();
             }
             
-            // Слушаем изменения в играх
+            // Слушаем изменения во всех играх
             gamesListener = db.ref('games').on('value', snapshot => {
                 const games = snapshot.val();
-                updateGamesListUI(games);
+                processAllPlayers(games);
             });
         }
         
-        // Обновить UI списка игр
-        function updateGamesListUI(games) {
-            const gamesList = document.getElementById('moderatorGamesList');
+        // Обработать всех игроков из всех игр
+        function processAllPlayers(games) {
+            allPlayers = [];
             
-            if (!games || Object.keys(games).length === 0) {
-                gamesList.innerHTML = `
-                    <div class="empty-games">
-                        <div class="empty-icon">🎮</div>
-                        <p>Активных игр нет</p>
+            if (!games) {
+                updatePlayersListUI([]);
+                return;
+            }
+            
+            // Собираем всех игроков из всех игр
+            Object.entries(games).forEach(([gameId, gameData]) => {
+                if (gameData.players) {
+                    const gameCode = gameId.replace('game_', '');
+                    
+                    Object.entries(gameData.players).forEach(([playerName, playerData]) => {
+                        allPlayers.push({
+                            gameId: gameId,
+                            gameCode: gameCode,
+                            playerName: playerName,
+                            playerData: playerData,
+                            gameStatus: gameData.status || 'unknown'
+                        });
+                    });
+                }
+            });
+            
+            // Обновляем UI
+            updatePlayersListUI(allPlayers);
+        }
+        
+        // Обновить UI списка игроков
+        function updatePlayersListUI(players) {
+            const playersList = document.getElementById('allPlayersList');
+            
+            if (players.length === 0) {
+                playersList.innerHTML = `
+                    <div class="empty-players">
+                        <div class="empty-icon">👤</div>
+                        <p>Нет активных игроков</p>
                     </div>
                 `;
                 return;
             }
             
+            // Сортируем по нику
+            players.sort((a, b) => a.playerName.localeCompare(b.playerName));
+            
             let html = '';
             
-            Object.entries(games).forEach(([gameId, gameData]) => {
-                const gameCode = gameId.replace('game_', '');
-                const playersCount = gameData.players ? Object.keys(gameData.players).length : 0;
-                const status = gameData.status || 'unknown';
-                const createdTime = gameData.created ? new Date(gameData.created).toLocaleTimeString() : 'неизвестно';
-                
-                // Определяем статус игры
-                let statusText = 'Неизвестно';
-                let statusClass = '';
-                
-                switch(status) {
-                    case 'lobby':
-                        statusText = 'Лобби';
-                        statusClass = 'lobby';
-                        break;
-                    case 'question_active':
-                        statusText = 'Вопрос активен';
-                        statusClass = 'active';
-                        break;
-                    case 'finished':
-                        statusText = 'Завершена';
-                        statusClass = 'finished';
-                        break;
-                    default:
-                        statusText = status;
-                }
+            players.forEach((player, index) => {
+                const playerData = player.playerData;
+                const device = playerData.device || 'Неизвестно';
+                const score = playerData.score || 0;
+                const joined = playerData.joined ? new Date(playerData.joined).toLocaleTimeString() : 'неизвестно';
                 
                 html += `
-                    <div class="game-item">
-                        <div class="game-info">
-                            <div class="game-code">${gameCode}</div>
-                            <span class="game-status ${statusClass}">${statusText}</span>
+                    <div class="player-item">
+                        <div class="player-info">
+                            <div class="player-avatar">${player.playerName.charAt(0).toUpperCase()}</div>
+                            <div class="player-details">
+                                <div class="player-name">${player.playerName}</div>
+                                <div class="player-meta">
+                                    🎮 Игра: ${player.gameCode} | 
+                                    📱 ${device} | 
+                                    🎯 ${score} очков |
+                                    🕐 ${joined}
+                                </div>
+                            </div>
                         </div>
-                        <div class="players-count">
-                            👥 Игроков: ${playersCount} | 🕐 Создана: ${createdTime}
-                        </div>
-                        <div style="margin-top: 10px; display: flex; gap: 8px;">
-                            <button class="moderator-btn" onclick="viewGamePlayers('${gameId}')" 
-                                    style="padding: 6px 12px; font-size: 12px;">
-                                👀 Игроки
-                            </button>
-                            <button class="moderator-btn delete" onclick="deleteGame('${gameId}')" 
-                                    style="padding: 6px 12px; font-size: 12px;">
-                                🗑️ Удалить
-                            </button>
-                        </div>
+                        <button class="kick-btn" onclick="kickPlayer('${player.gameId}', '${player.playerName.replace(/'/g, "\\'")}')">
+                            👢 Кик
+                        </button>
                     </div>
                 `;
             });
             
-            gamesList.innerHTML = html;
+            playersList.innerHTML = html;
         }
         
-        // Просмотр игроков в конкретной игре
-        function viewGamePlayers(gameId) {
-            if (!gameId) return;
-            
-            db.ref(`games/${gameId}/players`).once('value').then(snapshot => {
-                const players = snapshot.val();
-                if (!players) {
-                    alert("В этой игре нет игроков");
-                    return;
-                }
-                
-                const playerNames = Object.keys(players);
-                const playerList = playerNames.map(name => `• ${name} (${players[name].device || 'неизвестно'})`).join('\n');
-                
-                alert(`Игроки в игре ${gameId.replace('game_', '')}:\n\n${playerList}\n\nВсего: ${playerNames.length} игроков`);
-            });
-        }
-        
-        // Удалить игру
-        function deleteGame(gameId) {
-            if (!gameId) return;
+        // КИК ИГРОКА - ОСНОВНАЯ ФУНКЦИЯ
+        function kickPlayer(gameId, playerName) {
+            if (!gameId || !playerName) return;
             
             const gameCode = gameId.replace('game_', '');
             
-            if (confirm(`Удалить игру ${gameCode}?\nЭто действие нельзя отменить!`)) {
-                db.ref(`games/${gameId}`).remove()
+            if (confirm(`Кикнуть игрока "${playerName}" из игры ${gameCode}?`)) {
+                db.ref(`games/${gameId}/players/${playerName}`).remove()
                     .then(() => {
-                        showNotification(`Игра ${gameCode} удалена`);
+                        console.log(`✅ Игрок ${playerName} кикнут из игры ${gameCode}`);
+                        showNotification(`👢 Игрок "${playerName}" кикнут из игры ${gameCode}`);
+                        
+                        // Удаляем из локального массива
+                        allPlayers = allPlayers.filter(p => 
+                            !(p.gameId === gameId && p.playerName === playerName)
+                        );
+                        
+                        // Обновляем UI
+                        updatePlayersListUI(allPlayers);
                     })
                     .catch(error => {
-                        alert("Ошибка удаления игры: " + error.message);
+                        console.error("❌ Ошибка кика игрока:", error);
+                        alert("Ошибка: " + error.message);
                     });
             }
         }
         
-        // Просмотреть всех игроков во всех играх
-        function viewAllPlayers() {
+        // Обновить список игроков
+        function reloadPlayersList() {
             db.ref('games').once('value').then(snapshot => {
                 const games = snapshot.val();
-                if (!games) {
-                    alert("Нет активных игр");
-                    return;
-                }
-                
-                let allPlayers = [];
-                let html = `<h3>👥 Все игроки во всех играх</h3>`;
-                
-                Object.entries(games).forEach(([gameId, gameData]) => {
-                    if (gameData.players) {
-                        const gameCode = gameId.replace('game_', '');
-                        const players = Object.keys(gameData.players);
-                        
-                        if (players.length > 0) {
-                            html += `<h4>🎮 Игра ${gameCode} (${players.length} игроков):</h4>`;
-                            html += `<ul style="margin-left: 20px;">`;
-                            
-                            players.forEach(playerName => {
-                                const playerData = gameData.players[playerName];
-                                html += `<li>${playerName} - 📱 ${playerData.device || 'неизвестно'} - 🎯 ${playerData.score || 0} очков</li>`;
-                            });
-                            
-                            html += `</ul>`;
-                        }
-                    }
-                });
-                
-                // Создаем модальное окно с результатами
-                const modal = document.createElement('div');
-                modal.style.cssText = `
-                    position: fixed;
-                    top: 0; left: 0; right: 0; bottom: 0;
-                    background: rgba(0,0,0,0.9);
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    z-index: 10001;
-                    padding: 20px;
-                `;
-                
-                modal.innerHTML = `
-                    <div style="
-                        background: #1a1a2e;
-                        padding: 25px;
-                        border-radius: 15px;
-                        max-width: 600px;
-                        width: 100%;
-                        max-height: 80vh;
-                        overflow-y: auto;
-                        border: 3px solid #ff9e00;
-                    ">
-                        ${html}
-                        <div style="text-align: center; margin-top: 20px;">
-                            <button onclick="this.parentElement.parentElement.remove()" 
-                                    style="
-                                        background: #ff9e00;
-                                        color: white;
-                                        border: none;
-                                        padding: 12px 30px;
-                                        border-radius: 8px;
-                                        font-weight: bold;
-                                        cursor: pointer;
-                                    ">
-                                Закрыть
-                            </button>
-                        </div>
-                    </div>
-                `;
-                
-                document.body.appendChild(modal);
-            });
-        }
-        
-        // Проверить никнеймы на нецензурность
-        function checkBadNicknames() {
-            const badWords = ['хуй', 'пизд', 'ебан', 'бля', 'сука', 'пидор', 'гандон', 'мудак', 'уебок'];
-            
-            db.ref('games').once('value').then(snapshot => {
-                const games = snapshot.val();
-                if (!games) return;
-                
-                let foundBadNames = [];
-                
-                Object.entries(games).forEach(([gameId, gameData]) => {
-                    if (gameData.players) {
-                        Object.keys(gameData.players).forEach(playerName => {
-                            const lowerName = playerName.toLowerCase();
-                            const badWord = badWords.find(word => lowerName.includes(word));
-                            
-                            if (badWord) {
-                                foundBadNames.push({
-                                    gameId,
-                                    gameCode: gameId.replace('game_', ''),
-                                    playerName,
-                                    badWord
-                                });
-                            }
-                        });
-                    }
-                });
-                
-                if (foundBadNames.length === 0) {
-                    alert("✅ Нецензурных никнеймов не найдено!");
-                    return;
-                }
-                
-                let message = `⚠️ Найдено ${foundBadNames.length} нецензурных никнеймов:\n\n`;
-                
-                foundBadNames.forEach((item, index) => {
-                    message += `${index + 1}. Игра ${item.gameCode}: "${item.playerName}" (слово: "${item.badWord}")\n`;
-                });
-                
-                message += "\nУдалить все автоматически?";
-                
-                if (confirm(message)) {
-                    foundBadNames.forEach(item => {
-                        db.ref(`games/${item.gameId}/players/${item.playerName}`).remove();
-                    });
-                    alert(`Удалено ${foundBadNames.length} нецензурных никнеймов`);
-                }
-            });
-        }
-        
-        // Очистить старые игры (старше 24 часов)
-        function clearOldGames() {
-            const confirmClear = confirm("Удалить все игры старше 24 часов?\nЭто действие нельзя отменить!");
-            if (!confirmClear) return;
-            
-            const now = Date.now();
-            const oneDayAgo = now - (24 * 60 * 60 * 1000);
-            
-            db.ref('games').once('value').then(snapshot => {
-                const games = snapshot.val();
-                if (!games) return;
-                
-                let deletedCount = 0;
-                const promises = [];
-                
-                Object.entries(games).forEach(([gameId, gameData]) => {
-                    if (gameData.created && gameData.created < oneDayAgo) {
-                        promises.push(
-                            db.ref(`games/${gameId}`).remove()
-                                .then(() => deletedCount++)
-                        );
-                    }
-                });
-                
-                Promise.all(promises).then(() => {
-                    alert(`✅ Удалено ${deletedCount} старых игр`);
-                    showNotification(`Удалено ${deletedCount} старых игр`);
-                });
+                processAllPlayers(games);
+                showNotification("Список игроков обновлен");
             });
         }
         
@@ -962,13 +810,7 @@
                 gamesListener = null;
             }
             closeModeratorPanel();
-            showNotification("Вы вышли из режима администратора");
-        }
-        
-        // Обновить список игр
-        function reloadGamesList() {
-            loadGamesList();
-            showNotification("Список игр обновлен");
+            showNotification("Вы вышли из режима модератора");
         }
         
         // Утилиты
@@ -1013,18 +855,6 @@
             }
         `;
         document.head.appendChild(style);
-        
-        // Добавляем классы при наведении на мобильных устройствах
-        if ('ontouchstart' in window) {
-            document.querySelectorAll('.role-card, .btn').forEach(element => {
-                element.addEventListener('touchstart', function() {
-                    this.style.opacity = '0.8';
-                });
-                element.addEventListener('touchend', function() {
-                    this.style.opacity = '1';
-                });
-            });
-        }
         
         // Обработчик Escape для закрытия модалки
         document.addEventListener('keydown', function(event) {
