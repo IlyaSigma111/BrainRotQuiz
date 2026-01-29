@@ -387,6 +387,61 @@
             transition: width 0.5s ease;
         }
         
+        /* РЕЗУЛЬТАТЫ ВОПРОСА */
+        .results-container {
+            margin-top: 30px;
+            padding: 25px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            border: 2px solid var(--accent);
+            display: none;
+        }
+        
+        .results-container.visible {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .answer-options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .answer-option {
+            padding: 15px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid transparent;
+        }
+        
+        .answer-option.correct {
+            background: rgba(0, 255, 136, 0.1);
+            border-color: var(--success);
+        }
+        
+        .answer-option.selected {
+            background: rgba(255, 158, 0, 0.1);
+            border-color: var(--warning);
+        }
+        
+        .option-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        
+        .option-text {
+            font-size: 1.1rem;
+            line-height: 1.4;
+        }
+        
+        .option-count {
+            font-weight: bold;
+            font-size: 1.3rem;
+        }
+        
         /* АДАПТИВНОСТЬ */
         @media (max-width: 1024px) {
             .main-content {
@@ -430,6 +485,10 @@
             
             .counter-numbers {
                 font-size: 2rem;
+            }
+            
+            .answer-options-grid {
+                grid-template-columns: 1fr;
             }
         }
         
@@ -594,6 +653,11 @@
                     <div id="counterProgressFill" class="counter-progress-fill"></div>
                 </div>
             </div>
+            
+            <!-- РЕЗУЛЬТАТЫ ОТВЕТОВ -->
+            <div id="resultsContainer" class="results-container">
+                <!-- Результаты появятся здесь -->
+            </div>
         </div>
 
         <div class="presentation-controls">
@@ -620,6 +684,7 @@
         let gameListener = null;
         let answersListener = null;
         let totalPlayers = 0;
+        let currentQuestionData = null;
 
         // Элементы DOM
         const startSection = document.getElementById('startSection');
@@ -640,6 +705,7 @@
         const answeredCount = document.getElementById('answeredCount');
         const totalPlayersCount = document.getElementById('totalPlayersCount');
         const counterProgressFill = document.getElementById('counterProgressFill');
+        const resultsContainer = document.getElementById('resultsContainer');
 
         // ================ ОСНОВНЫЕ ФУНКЦИИ ================
 
@@ -692,19 +758,23 @@
             }
             
             const questions = window.QUIZ_DATA ? window.QUIZ_DATA.questions : [];
-            const question = questions[currentQuestionIndex];
-            if (!question) {
+            currentQuestionData = questions[currentQuestionIndex];
+            if (!currentQuestionData) {
                 alert("🎉 Все вопросы пройдены!");
                 return;
             }
             
             // Очистить старые ответы
-            db.ref(`games/${currentGameId}/answers/${question.id}`).remove();
+            db.ref(`games/${currentGameId}/answers/${currentQuestionData.id}`).remove();
+            
+            // Скрыть результаты предыдущего вопроса
+            resultsContainer.classList.remove('visible');
+            resultsContainer.innerHTML = '';
             
             // Обновить статус игры
             db.ref('games/' + currentGameId).update({
                 status: "question_active",
-                currentQuestion: question.id,
+                currentQuestion: currentQuestionData.id,
                 questionStartTime: Date.now()
             }).then(() => {
                 // Сбросить счетчик
@@ -714,10 +784,10 @@
                 presentationCounter.classList.remove('visible');
                 
                 // Переключить в режим презентации
-                enterPresentationMode(question);
+                enterPresentationMode(currentQuestionData);
                 
                 // Начать слушать ответы
-                listenToAnswers(question.id);
+                listenToAnswers(currentQuestionData.id);
                 
                 // Обновить счетчик
                 currentQuestionIndex++;
@@ -814,9 +884,10 @@
         }
 
         function showAnswerPresentation() {
-            const questions = window.QUIZ_DATA ? window.QUIZ_DATA.questions : [];
-            const question = questions[currentQuestionIndex - 1];
-            if (!question) return;
+            if (!currentQuestionData) {
+                showNotification("Сначала запустите вопрос!");
+                return;
+            }
             
             // Отписаться от слушателя ответов
             if (answersListener) {
@@ -824,8 +895,49 @@
                 answersListener = null;
             }
             
+            // Получить статистику ответов
+            db.ref(`games/${currentGameId}/answers/${currentQuestionData.id}`).once('value').then(snapshot => {
+                const answers = snapshot.val() || {};
+                showQuestionResults(answers, currentQuestionData);
+                
+                // Переключить статус игры
+                if (currentGameId) {
+                    db.ref('games/' + currentGameId).update({
+                        status: "showing_results"
+                    });
+                }
+            }).catch(error => {
+                console.error("Ошибка получения ответов:", error);
+                showQuestionResults({}, currentQuestionData);
+            });
+        }
+
+        function showQuestionResults(answers, question) {
+            // Подсчитать статистику по вариантам ответов
+            const stats = question.options.map(() => 0);
+            let totalAnswered = 0;
+            
+            Object.values(answers).forEach(answer => {
+                if (answer.answerIndex >= 0 && answer.answerIndex < question.options.length) {
+                    stats[answer.answerIndex]++;
+                    totalAnswered++;
+                }
+            });
+            
+            // Скрыть счетчик ответов
+            presentationCounter.style.opacity = '0';
+            
             // Показать правильный ответ
-            presentationQuestion.innerHTML += `
+            let questionHTML = `<h2 style="color: white; text-align: center; line-height: 1.4; margin: 0;">${question.text}</h2>`;
+            
+            if (question.text.length > 200) {
+                questionHTML = `<div style="max-height: 400px; overflow-y: auto; padding-right: 20px;">
+                    <h2 style="color: white; text-align: center; line-height: 1.4; margin: 0;">${question.text}</h2>
+                </div>`;
+            }
+            
+            // Добавить правильный ответ
+            questionHTML += `
                 <div style="margin-top: 30px; padding: 25px; background: rgba(0, 255, 136, 0.1); border-radius: 15px; border: 3px solid #00ff88;">
                     <h3 style="color: #00ff88; margin-top: 0; font-size: 1.5rem;">✅ ПРАВИЛЬНЫЙ ОТВЕТ:</h3>
                     <div style="font-size: 1.8rem; color: white; margin: 15px 0; font-weight: bold;">${question.options[question.correct]}</div>
@@ -833,79 +945,84 @@
                 </div>
             `;
             
-            // Переключить статус
-            if (currentGameId) {
-                db.ref('games/' + currentGameId).update({
-                    status: "showing_results"
-                });
-            }
+            presentationQuestion.innerHTML = questionHTML;
             
-            // Получить и показать статистику
-            showStats();
+            // Показать результаты
+            showDetailedResults(stats, question, totalAnswered);
+            
+            // Обновить статистику в основном интерфейсе
+            updateMainStats(stats, question, totalAnswered);
         }
 
-        function showAnswer() {
-            showAnswerPresentation();
-        }
-
-        function nextQuestion() {
-            exitPresentation();
-        }
-
-        function showStats() {
-            if (currentQuestionIndex === 0) {
-                return;
-            }
+        function showDetailedResults(stats, question, totalAnswered) {
+            const correctCount = stats[question.correct] || 0;
+            const percentage = totalAnswered > 0 ? Math.round((correctCount / totalAnswered) * 100) : 0;
             
-            const questions = window.QUIZ_DATA ? window.QUIZ_DATA.questions : [];
-            const question = questions[currentQuestionIndex - 1];
-            if (!question) return;
+            let optionsHTML = '';
             
-            // Получить статистику
-            db.ref(`games/${currentGameId}/answers/${question.id}`).once('value').then(snapshot => {
-                const answers = snapshot.val() || {};
-                const stats = calculateStats(answers, question);
-                updateStatsDisplay(stats);
-            });
-        }
-
-        function updateStatsDisplay(stats) {
-            const total = stats.total || 0;
-            const correct = stats.correct || 0;
-            const percentage = total > 0 ? Math.round((correct / total) * 100) : 0;
-            
-            // Обновить статистику в режиме презентации
-            if (presentationMode.classList.contains('active')) {
-                presentationQuestion.innerHTML += `
-                    <div style="margin-top: 25px; padding: 20px; background: rgba(67, 97, 238, 0.1); border-radius: 15px; border: 2px solid #4361ee;">
-                        <h3 style="color: #4361ee; margin-top: 0; font-size: 1.3rem;">📊 СТАТИСТИКА ОТВЕТОВ:</h3>
-                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 15px;">
-                            <div style="text-align: center;">
-                                <div style="font-size: 2rem; color: #4cc9f0; font-weight: bold;">${total}</div>
-                                <div style="color: #8f8f8f; font-size: 0.9rem;">Всего ответов</div>
+            question.options.forEach((option, index) => {
+                const isCorrect = index === question.correct;
+                const count = stats[index] || 0;
+                const percentage = totalAnswered > 0 ? Math.round((count / totalAnswered) * 100) : 0;
+                
+                optionsHTML += `
+                    <div class="answer-option ${isCorrect ? 'correct' : ''}">
+                        <div class="option-header">
+                            <div class="option-text">${option}</div>
+                            <div class="option-count" style="color: ${isCorrect ? 'var(--success)' : 'var(--accent)'}">
+                                ${count} (${percentage}%)
                             </div>
-                            <div style="text-align: center;">
-                                <div style="font-size: 2rem; color: #00ff88; font-weight: bold;">${correct}</div>
-                                <div style="color: #8f8f8f; font-size: 0.9rem;">Правильных</div>
-                            </div>
-                            <div style="text-align: center;">
-                                <div style="font-size: 2rem; color: #ff9e00; font-weight: bold;">${percentage}%</div>
-                                <div style="color: #8f8f8f; font-size: 0.9rem;">Успешность</div>
-                            </div>
+                        </div>
+                        <div class="progress-bar" style="height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; margin-top: 8px; overflow: hidden;">
+                            <div style="height: 100%; width: ${percentage}%; background: ${isCorrect ? 'var(--success)' : 'var(--accent)'}; border-radius: 4px;"></div>
                         </div>
                     </div>
                 `;
-            }
+            });
             
-            // Обновить статистику в основном интерфейсе
+            resultsContainer.innerHTML = `
+                <h3 style="color: var(--accent); margin-top: 0; font-size: 1.5rem; text-align: center;">📊 РЕЗУЛЬТАТЫ ОТВЕТОВ</h3>
+                
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 20px 0; text-align: center;">
+                    <div style="padding: 15px; background: rgba(67, 97, 238, 0.1); border-radius: 10px;">
+                        <div style="font-size: 2rem; color: var(--accent); font-weight: bold;">${totalAnswered}</div>
+                        <div style="color: var(--gray); font-size: 0.9rem;">Всего ответов</div>
+                    </div>
+                    <div style="padding: 15px; background: rgba(0, 255, 136, 0.1); border-radius: 10px;">
+                        <div style="font-size: 2rem; color: var(--success); font-weight: bold;">${correctCount}</div>
+                        <div style="color: var(--gray); font-size: 0.9rem;">Правильных</div>
+                    </div>
+                    <div style="padding: 15px; background: rgba(255, 158, 0, 0.1); border-radius: 10px;">
+                        <div style="font-size: 2rem; color: var(--warning); font-weight: bold;">${percentage}%</div>
+                        <div style="color: var(--gray); font-size: 0.9rem;">Успешность</div>
+                    </div>
+                </div>
+                
+                <h4 style="color: var(--accent); margin: 20px 0 15px 0; font-size: 1.2rem;">Распределение по вариантам:</h4>
+                <div class="answer-options-grid">
+                    ${optionsHTML}
+                </div>
+                
+                <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); color: var(--gray); font-size: 0.9rem; text-align: center;">
+                    ✅ - правильный ответ | 📊 - количество выбравших этот вариант
+                </div>
+            `;
+            
+            resultsContainer.classList.add('visible');
+        }
+
+        function updateMainStats(stats, question, totalAnswered) {
+            const correctCount = stats[question.correct] || 0;
+            const percentage = totalAnswered > 0 ? Math.round((correctCount / totalAnswered) * 100) : 0;
+            
             statsContent.innerHTML = `
                 <div class="stats-grid">
                     <div class="stat-item">
-                        <div class="stat-value">${total}</div>
+                        <div class="stat-value">${totalAnswered}</div>
                         <div class="stat-label">Всего ответов</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value">${correct}</div>
+                        <div class="stat-value">${correctCount}</div>
                         <div class="stat-label">Правильных</div>
                     </div>
                     <div class="stat-item">
@@ -916,23 +1033,12 @@
             `;
         }
 
-        function calculateStats(answers, question) {
-            const stats = {
-                total: Object.keys(answers).length,
-                correct: 0,
-                byOption: question.options.map(() => 0)
-            };
-            
-            Object.values(answers).forEach(answer => {
-                if (answer.answerIndex >= 0 && answer.answerIndex < question.options.length) {
-                    stats.byOption[answer.answerIndex]++;
-                    if (answer.answerIndex === question.correct) {
-                        stats.correct++;
-                    }
-                }
-            });
-            
-            return stats;
+        function showAnswer() {
+            showAnswerPresentation();
+        }
+
+        function nextQuestion() {
+            exitPresentation();
         }
 
         function resetGame() {
@@ -944,6 +1050,7 @@
                 // Сбросить всё
                 currentGameId = null;
                 currentQuestionIndex = 0;
+                currentQuestionData = null;
                 totalPlayers = 0;
                 startSection.style.display = 'block';
                 gameControls.style.display = 'none';
@@ -954,16 +1061,25 @@
                 currentQ.textContent = '0/30';
                 
                 // Отписаться от слушателей
-                if (playersListener) playersListener();
-                if (gameListener) gameListener();
-                if (answersListener) answersListener();
+                if (playersListener) {
+                    playersListener();
+                    playersListener = null;
+                }
+                if (gameListener) {
+                    gameListener();
+                    gameListener = null;
+                }
+                if (answersListener) {
+                    answersListener();
+                    answersListener = null;
+                }
                 
                 showNotification("Игра сброшена");
             }
         }
 
         function listenToPlayers() {
-            if (!currentGameId || playersListener) return;
+            if (!currentGameId) return;
             
             playersListener = db.ref(`games/${currentGameId}/players`).on('value', snapshot => {
                 const players = snapshot.val() || {};
