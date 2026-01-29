@@ -1,5 +1,5 @@
 // ============================================
-// student.js - ПОЛНАЯ ВЕРСИЯ
+// student.js - ПОЛНАЯ ВЕРСИЯ С ФИКСАМИ
 // ============================================
 
 let currentGameId = null;
@@ -183,8 +183,8 @@ function handleQuestionActive(game, questionId) {
     // Показать вопрос
     displayQuestion(currentQuestion);
     
-    // Запустить таймер НА 25 СЕКУНД
-    startTimer(25);
+    // Запустить таймер НА 45 СЕКУНД (ИЗМЕНЕНО)
+    startTimer(45);
     
     console.log(`❓ Вопрос ${currentQuestion.id}: ${currentQuestion.type}`);
 }
@@ -212,7 +212,7 @@ function displayQuestion(question) {
     });
     
     // Сбросить статус
-    answerStatus.textContent = "Выберите вариант ответа (25 секунд)";
+    answerStatus.textContent = "Выберите вариант ответа (45 секунд)"; // ИЗМЕНЕНО
     answerStatus.style.color = "#00ff88";
     
     // Разблокировать кнопки
@@ -234,8 +234,8 @@ function selectAnswer(answerIndex, buttonElement) {
     });
     buttonElement.classList.add('selected');
     
-    // Рассчитать оставшееся время
-    const timeSpent = 25 - parseInt(studentTimer.textContent);
+    // Рассчитать оставшееся время (45 секунд - ИЗМЕНЕНО)
+    const timeSpent = 45 - parseInt(studentTimer.textContent);
     
     // Отправить ответ НЕМЕДЛЕННО
     submitAnswer(answerIndex, timeSpent);
@@ -253,8 +253,15 @@ function submitAnswer(answerIndex, timeSpent) {
         btn.style.opacity = '0.6';
     });
     
-    // Проверить правильность
-    const isCorrect = (answerIndex === currentQuestion.correct);
+    // ФИКС: Проверка правильности для массивов
+    let isCorrect = false;
+    if (Array.isArray(currentQuestion.correct)) {
+        // Для вопросов с несколькими правильными ответами
+        isCorrect = currentQuestion.correct.includes(answerIndex);
+    } else {
+        // Для вопросов с одним правильным ответом
+        isCorrect = (answerIndex === currentQuestion.correct);
+    }
     
     // Отправить ответ в Firebase
     const answerData = {
@@ -312,7 +319,7 @@ function updateTimerDisplay(timeLeft) {
     if (timeLeft <= 5) {
         studentTimer.style.color = '#ff416c';
         studentTimer.style.animation = 'pulse 0.5s infinite';
-    } else if (timeLeft <= 10) {
+    } else if (timeLeft <= 15) {
         studentTimer.style.color = '#ff9e00';
         studentTimer.style.animation = 'none';
     } else {
@@ -340,7 +347,7 @@ function handleTimeUp() {
         const answerData = {
             answerIndex: -1,
             isCorrect: false,
-            timeSpent: 25,
+            timeSpent: 45, // ИЗМЕНЕНО
             timestamp: Date.now()
         };
         
@@ -375,7 +382,17 @@ function showResult(userAnswer, question) {
     if (userAnswer && userAnswer.answerIndex >= 0) {
         const isCorrect = userAnswer.isCorrect;
         const userAnswerText = question.options[userAnswer.answerIndex];
-        const correctAnswerText = question.options[question.correct];
+        
+        // ФИКС: Получение правильного ответа для массивов
+        let correctAnswerText = '';
+        if (Array.isArray(question.correct)) {
+            // Для вопросов с несколькими правильными ответами
+            const correctOptions = question.correct.map(index => question.options[index]);
+            correctAnswerText = correctOptions.join(', ');
+        } else {
+            // Для вопросов с одним правильным ответом
+            correctAnswerText = question.options[question.correct];
+        }
         
         resultHTML = `
             <div class="result-header" style="color: ${isCorrect ? '#00ff88' : '#ff416c'}; font-size: 24px; margin-bottom: 20px;">
@@ -401,6 +418,15 @@ function showResult(userAnswer, question) {
             </div>
         `;
     } else {
+        // ФИКС: Получение правильного ответа для массивов
+        let correctAnswerText = '';
+        if (Array.isArray(question.correct)) {
+            const correctOptions = question.correct.map(index => question.options[index]);
+            correctAnswerText = correctOptions.join(', ');
+        } else {
+            correctAnswerText = question.options[question.correct];
+        }
+        
         resultHTML = `
             <div class="result-header" style="color: #ff9e00; font-size: 24px; margin-bottom: 20px;">
                 ⏰ ВЫ НЕ УСПЕЛИ ОТВЕТИТЬ
@@ -409,7 +435,7 @@ function showResult(userAnswer, question) {
             <div class="result-details">
                 <div style="margin: 10px 0; padding: 10px; background: rgba(0,255,136,0.1); border-radius: 5px; border-left: 4px solid #00ff88;">
                     <div style="color: #8f8f8f;">Правильный ответ:</div>
-                    <div style="color: #00ff88; font-size: 18px; font-weight: bold;">${question.options[question.correct]}</div>
+                    <div style="color: #00ff88; font-size: 18px; font-weight: bold;">${correctAnswerText}</div>
                 </div>
                 
                 <div style="margin: 15px 0; padding: 15px; background: rgba(0,173,181,0.1); border-radius: 5px;">
@@ -542,7 +568,11 @@ function getTypeLabel(type) {
         morphology: "📚 МОРФОЛОГИЯ",
         reading: "📖 ЧТЕНИЕ",
         stylistics: "🎨 СТИЛИСТИКА",
-        lexicology: "📖 ЛЕКСИКОЛОГИЯ"
+        lexicology: "📖 ЛЕКСИКОЛОГИЯ",
+        writing: "📝 ИЗЛОЖЕНИЕ",
+        composition: "✍️ СОЧИНЕНИЕ",
+        exam_rules: "📋 ПРАВИЛА ОГЭ",
+        grading: "📊 ОЦЕНИВАНИЕ"
     };
     return labels[type] || type;
 }
