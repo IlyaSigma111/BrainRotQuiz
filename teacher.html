@@ -213,6 +213,23 @@
             font-size: 0.95rem;
         }
         
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .info-label {
+            color: var(--gray);
+            font-size: 0.9rem;
+        }
+        
+        .info-value {
+            color: white;
+            font-weight: bold;
+            font-size: 1.2rem;
+            margin-top: 5px;
+        }
+        
         /* СПИСОК ИГРОКОВ */
         .players-list {
             display: grid;
@@ -228,6 +245,7 @@
             padding: 20px;
             text-align: center;
             transition: all 0.3s ease;
+            position: relative;
         }
         
         .player-avatar {
@@ -242,6 +260,17 @@
             font-size: 1.3rem;
             font-weight: bold;
             color: white;
+        }
+        
+        .player-name {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: white;
+        }
+        
+        .player-score {
+            color: var(--accent);
+            font-size: 0.9rem;
         }
         
         /* СТАТИСТИКА */
@@ -259,12 +288,63 @@
             text-align: center;
         }
         
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--accent);
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: var(--gray);
+            font-size: 0.9rem;
+        }
+        
         /* ВОПРОСЫ */
         .questions-list {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
             gap: 12px;
             margin-top: 15px;
+        }
+        
+        .question-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            text-align: center;
+        }
+        
+        .question-item:hover {
+            background: rgba(0, 173, 181, 0.1);
+        }
+        
+        .question-item.active {
+            border-color: var(--warning);
+            background: rgba(255, 158, 0, 0.1);
+        }
+        
+        .question-item.completed {
+            border-color: var(--success);
+            background: rgba(0, 255, 136, 0.1);
+        }
+        
+        .question-number {
+            font-weight: bold;
+            color: var(--accent);
+            font-size: 1.1rem;
+            background: var(--accent);
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
         }
         
         /* РЕЖИМ ПРЕЗЕНТАЦИИ - ПОЛНОСТЬЮ ОТДЕЛЬНЫЙ ЭКРАН */
@@ -328,11 +408,11 @@
             align-items: center;
         }
         
-        /* СЧЕТЧИК ОТВЕТОВ */
+        /* СЧЕТЧИК ОТВЕТОВ В ПРЕЗЕНТАЦИИ */
         .answers-counter {
             margin-top: 30px;
             text-align: center;
-            opacity: 0;
+            opacity: 1;
             transition: opacity 0.5s ease;
         }
         
@@ -402,6 +482,35 @@
             animation: fadeIn 0.5s ease;
         }
         
+        /* КНОПКА КИКА ИГРОКА */
+        .kick-player-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 65, 108, 0.2);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.3s;
+        }
+        
+        .player-card:hover .kick-player-btn {
+            opacity: 1;
+        }
+        
+        .kick-player-btn:hover {
+            background: var(--danger);
+            color: white;
+        }
+        
         /* АДАПТИВНОСТЬ */
         @media (max-width: 1024px) {
             .main-content {
@@ -442,6 +551,10 @@
             .counter-numbers {
                 font-size: 2rem;
             }
+            
+            .kick-player-btn {
+                opacity: 1;
+            }
         }
         
         /* ПУСТЫЕ СОСТОЯНИЯ */
@@ -455,6 +568,29 @@
             font-size: 60px;
             margin-bottom: 15px;
             opacity: 0.5;
+        }
+        
+        /* УВЕДОМЛЕНИЯ */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(45deg, var(--accent), var(--primary));
+            color: white;
+            padding: 15px 25px;
+            border-radius: 12px;
+            font-weight: 600;
+            z-index: 10000;
+            animation: slideInRight 0.3s ease;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
         
         /* СКРОЛЛБАР */
@@ -487,6 +623,9 @@
                     <div class="code-label">КОД ИГРЫ:</div>
                     <div id="gameCode" class="code-display">----</div>
                 </div>
+                <button onclick="copyGameCode()" class="btn btn-create" style="padding: 12px 20px;">
+                    <i class="fas fa-copy"></i> Копировать код
+                </button>
                 <a href="index.html" class="btn btn-create" style="padding: 12px 20px;">
                     <i class="fas fa-home"></i> Главная
                 </a>
@@ -527,7 +666,7 @@
                         <div class="question-info">
                             <div class="info-item">
                                 <span class="info-label">Текущий вопрос</span>
-                                <span id="currentQ" class="info-value">0/30</span>
+                                <span id="currentQ" class="info-value">0</span>/<span id="totalQ">30</span>
                             </div>
                             <div class="info-item">
                                 <span class="info-label">Игроков онлайн</span>
@@ -580,6 +719,11 @@
                 <span class="presentation-label">РЕЖИМ ПРЕЗЕНТАЦИИ</span>
                 <span class="question-counter">Вопрос <span id="presentationQNum">1</span></span>
             </div>
+            <div style="display: flex; align-items: center; gap: 20px;">
+                <div id="presentationStats" style="font-size: 1.2rem; color: var(--success); font-weight: bold;">
+                    <i class="fas fa-users"></i> <span id="liveAnsweredCount">0</span>/<span id="liveTotalPlayers">0</span> ответили
+                </div>
+            </div>
         </div>
 
         <div class="presentation-content">
@@ -600,7 +744,7 @@
                         <i class="fas fa-check-circle" style="font-size: 2rem; color: var(--success);"></i>
                     </div>
                 </div>
-                <div class="counter-label">Игроков ответило</div>
+                <div class="counter-label">Игроков ответило в реальном времени</div>
                 <div class="counter-progress">
                     <div id="counterProgressFill" class="counter-progress-fill"></div>
                 </div>
