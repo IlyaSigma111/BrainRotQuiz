@@ -795,41 +795,32 @@
             const gameCode = gameId.replace('game_', '');
             
             if (confirm(`Кикнуть игрока "${playerName}" из игры ${gameCode}?`)) {
-                // ШАГ 1: Удаляем игрока из базы Firebase
+                // 1. Удаляем игрока из Firebase
                 db.ref(`games/${gameId}/players/${playerName}`).remove()
                     .then(() => {
                         console.log(`✅ Шаг 1: Игрок ${playerName} удален из Firebase`);
                         
-                        // ШАГ 2: Отправляем команду выхода на страницу ученика
-                        // Создаем специальное событие, которое ученик будет проверять
+                        // 2. Отправляем команду кика
                         const kickCommand = {
-                            command: "FORCE_KICK",
+                            command: "KICK",
                             playerName: playerName,
-                            gameId: gameId,
                             timestamp: Date.now(),
                             reason: "Кикнут модератором"
                         };
                         
                         db.ref(`kick_commands/${gameId}/${playerName}`).set(kickCommand)
                             .then(() => {
-                                console.log(`✅ Шаг 2: Команда кика отправлена игроку ${playerName}`);
+                                console.log(`✅ Шаг 2: Команда кика отправлена`);
+                                showNotification(`👢 Игрок "${playerName}" кикнут из игры ${gameCode}`);
                                 
-                                // ШАГ 3: Через 2 секунды удаляем команду кика
+                                // 3. Через 10 секунд очищаем команду
                                 setTimeout(() => {
                                     db.ref(`kick_commands/${gameId}/${playerName}`).remove();
                                     console.log(`✅ Шаг 3: Команда кика очищена`);
-                                }, 2000);
+                                }, 10000);
                                 
-                                // ШАГ 4: Обновляем список игроков
-                                setTimeout(() => {
-                                    db.ref('games').once('value').then(snapshot => {
-                                        const games = snapshot.val();
-                                        console.log("🔄 Обновление после кика:", games);
-                                        processAllPlayers(games);
-                                    });
-                                }, 1000);
-                                
-                                showNotification(`👢 Игрок "${playerName}" кикнут из игры ${gameCode}`);
+                                // 4. Обновляем список игроков
+                                reloadPlayersList();
                             })
                             .catch(error => {
                                 console.error("❌ Ошибка отправки команды кика:", error);
