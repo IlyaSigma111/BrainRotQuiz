@@ -1,5 +1,5 @@
 // ============================================
-// student.js - ПОЛНАЯ ВЕРСИЯ С ФИКСАМИ
+// student.js - ПОЛНАЯ ВЕРСИЯ С ФИКСАМИ И ОТЛАДКОЙ
 // ============================================
 
 let currentGameId = null;
@@ -28,6 +28,84 @@ const resultContent = document.getElementById('resultContent');
 const nextCountdown = document.getElementById('nextCountdown');
 const currentQ = document.getElementById('currentQ');
 const questionType = document.getElementById('questionType');
+
+// ================ УТИЛИТЫ ================
+
+// Универсальная функция для получения правильного ответа
+function getCorrectAnswer(question) {
+    if (!question || question.correct === undefined || question.correct === null) {
+        console.error("❌ Вопрос или correct не определен:", question);
+        return null;
+    }
+    
+    let correct = question.correct;
+    console.log("🔍 getCorrectAnswer входные данные:", {
+        correct: correct,
+        type: typeof correct,
+        isArray: Array.isArray(correct)
+    });
+    
+    // Если это строка, пытаемся преобразовать
+    if (typeof correct === 'string') {
+        try {
+            if (correct.startsWith('[')) {
+                correct = JSON.parse(correct);
+            } else if (!isNaN(correct) && correct.trim() !== '') {
+                correct = parseInt(correct);
+            }
+        } catch (e) {
+            console.error("❌ Ошибка преобразования correct:", e);
+            // Оставляем как есть
+        }
+    }
+    
+    console.log("🔍 getCorrectAnswer результат:", {
+        correct: correct,
+        type: typeof correct,
+        isArray: Array.isArray(correct)
+    });
+    
+    return correct;
+}
+
+// Проверка правильности ответа
+function checkAnswerCorrectness(answerIndex, question) {
+    const correctAnswer = getCorrectAnswer(question);
+    
+    if (correctAnswer === null) {
+        console.error("❌ Не удалось определить правильный ответ для вопроса:", question);
+        return false;
+    }
+    
+    if (Array.isArray(correctAnswer)) {
+        return correctAnswer.includes(answerIndex);
+    } else if (typeof correctAnswer === 'number') {
+        return (answerIndex === correctAnswer);
+    }
+    
+    console.error("❌ Неподдерживаемый тип correctAnswer:", typeof correctAnswer, correctAnswer);
+    return false;
+}
+
+// Получение текста правильного ответа
+function getCorrectAnswerText(question) {
+    const correctAnswer = getCorrectAnswer(question);
+    
+    if (correctAnswer === null) {
+        return "Не удалось определить правильный ответ";
+    }
+    
+    if (Array.isArray(correctAnswer)) {
+        const correctOptions = correctAnswer.map(index => {
+            return question.options[index] || `Вариант ${index + 1}`;
+        });
+        return correctOptions.join(', ');
+    } else if (typeof correctAnswer === 'number') {
+        return question.options[correctAnswer] || `Вариант ${correctAnswer + 1}`;
+    }
+    
+    return "Ошибка формата ответа";
+}
 
 // ================ ОСНОВНЫЕ ФУНКЦИИ ================
 
@@ -173,6 +251,12 @@ function handleQuestionActive(game, questionId) {
         return;
     }
     
+    console.log("🔍 Загружен вопрос:", {
+        id: currentQuestion.id,
+        correct: currentQuestion.correct,
+        type: typeof currentQuestion.correct
+    });
+    
     // Сбросить состояние ответа
     hasAnswered = false;
     selectedOption = null;
@@ -183,7 +267,7 @@ function handleQuestionActive(game, questionId) {
     // Показать вопрос
     displayQuestion(currentQuestion);
     
-    // Запустить таймер НА 45 СЕКУНД (ИЗМЕНЕНО)
+    // Запустить таймер НА 45 СЕКУНД
     startTimer(45);
     
     console.log(`❓ Вопрос ${currentQuestion.id}: ${currentQuestion.type}`);
@@ -212,7 +296,7 @@ function displayQuestion(question) {
     });
     
     // Сбросить статус
-    answerStatus.textContent = "Выберите вариант ответа (45 секунд)"; // ИЗМЕНЕНО
+    answerStatus.textContent = "Выберите вариант ответа (45 секунд)";
     answerStatus.style.color = "#00ff88";
     
     // Разблокировать кнопки
@@ -234,7 +318,7 @@ function selectAnswer(answerIndex, buttonElement) {
     });
     buttonElement.classList.add('selected');
     
-    // Рассчитать оставшееся время (45 секунд - ИЗМЕНЕНО)
+    // Рассчитать оставшееся время (45 секунд)
     const timeSpent = 45 - parseInt(studentTimer.textContent);
     
     // Отправить ответ НЕМЕДЛЕННО
@@ -247,21 +331,24 @@ function submitAnswer(answerIndex, timeSpent) {
     hasAnswered = true;
     clearTimer();
     
+    console.log("🔍 submitAnswer вызван:", {
+        answerIndex,
+        currentQuestionId: currentQuestion?.id,
+        currentQuestionCorrect: currentQuestion?.correct,
+        playerName,
+        timeSpent
+    });
+    
     // Блокировать кнопки
     document.querySelectorAll('.option-btn').forEach(btn => {
         btn.disabled = true;
         btn.style.opacity = '0.6';
     });
     
-    // ФИКС: Проверка правильности для массивов
-    let isCorrect = false;
-    if (Array.isArray(currentQuestion.correct)) {
-        // Для вопросов с несколькими правильными ответами
-        isCorrect = currentQuestion.correct.includes(answerIndex);
-    } else {
-        // Для вопросов с одним правильным ответом
-        isCorrect = (answerIndex === currentQuestion.correct);
-    }
+    // Проверка правильности
+    const isCorrect = checkAnswerCorrectness(answerIndex, currentQuestion);
+    
+    console.log("🔍 Результат проверки:", isCorrect);
     
     // Отправить ответ в Firebase
     const answerData = {
@@ -347,7 +434,7 @@ function handleTimeUp() {
         const answerData = {
             answerIndex: -1,
             isCorrect: false,
-            timeSpent: 45, // ИЗМЕНЕНО
+            timeSpent: 45,
             timestamp: Date.now()
         };
         
@@ -377,22 +464,27 @@ function handleShowingResults(game, questionId) {
 }
 
 function showResult(userAnswer, question) {
+    console.log("🔍 showResult вызван:", {
+        userAnswer,
+        questionId: question?.id,
+        questionCorrect: question?.correct,
+        questionOptions: question?.options?.length
+    });
+    
     let resultHTML = '';
     
     if (userAnswer && userAnswer.answerIndex >= 0) {
         const isCorrect = userAnswer.isCorrect;
-        const userAnswerText = question.options[userAnswer.answerIndex];
+        const userAnswerText = question.options[userAnswer.answerIndex] || `Вариант ${userAnswer.answerIndex + 1}`;
         
-        // ФИКС: Получение правильного ответа для массивов
-        let correctAnswerText = '';
-        if (Array.isArray(question.correct)) {
-            // Для вопросов с несколькими правильными ответами
-            const correctOptions = question.correct.map(index => question.options[index]);
-            correctAnswerText = correctOptions.join(', ');
-        } else {
-            // Для вопросов с одним правильным ответом
-            correctAnswerText = question.options[question.correct];
-        }
+        // Получение правильного ответа
+        const correctAnswerText = getCorrectAnswerText(question);
+        
+        console.log("🔍 Данные для отображения:", {
+            isCorrect,
+            userAnswerText,
+            correctAnswerText
+        });
         
         resultHTML = `
             <div class="result-header" style="color: ${isCorrect ? '#00ff88' : '#ff416c'}; font-size: 24px; margin-bottom: 20px;">
@@ -413,19 +505,15 @@ function showResult(userAnswer, question) {
                 
                 <div style="margin: 15px 0; padding: 15px; background: rgba(0,173,181,0.1); border-radius: 5px;">
                     <div style="color: #00adb5; font-weight: bold;">💡 Объяснение:</div>
-                    <div style="color: white; margin-top: 5px;">${question.explanation}</div>
+                    <div style="color: white; margin-top: 5px;">${question.explanation || 'Объяснение отсутствует'}</div>
                 </div>
             </div>
         `;
     } else {
-        // ФИКС: Получение правильного ответа для массивов
-        let correctAnswerText = '';
-        if (Array.isArray(question.correct)) {
-            const correctOptions = question.correct.map(index => question.options[index]);
-            correctAnswerText = correctOptions.join(', ');
-        } else {
-            correctAnswerText = question.options[question.correct];
-        }
+        // Получение правильного ответа
+        const correctAnswerText = getCorrectAnswerText(question);
+        
+        console.log("🔍 Пользователь не ответил, правильный ответ:", correctAnswerText);
         
         resultHTML = `
             <div class="result-header" style="color: #ff9e00; font-size: 24px; margin-bottom: 20px;">
@@ -440,7 +528,7 @@ function showResult(userAnswer, question) {
                 
                 <div style="margin: 15px 0; padding: 15px; background: rgba(0,173,181,0.1); border-radius: 5px;">
                     <div style="color: #00adb5; font-weight: bold;">💡 Объяснение:</div>
-                    <div style="color: white; margin-top: 5px;">${question.explanation}</div>
+                    <div style="color: white; margin-top: 5px;">${question.explanation || 'Объяснение отсутствует'}</div>
                 </div>
             </div>
         `;
@@ -580,6 +668,16 @@ function getTypeLabel(type) {
 // Инициализация
 document.addEventListener('DOMContentLoaded', function() {
     console.log("✅ Student app loaded");
+    console.log("🔍 QUIZ_DATA доступен:", !!window.QUIZ_DATA);
+    console.log("🔍 Firebase доступен:", !!window.db);
+    
+    if (window.QUIZ_DATA && window.QUIZ_DATA.questions) {
+        console.log(`📚 Загружено ${QUIZ_DATA.questions.length} вопросов`);
+        // Логируем правильные ответы для отладки
+        QUIZ_DATA.questions.forEach((q, i) => {
+            console.log(`🔍 Вопрос ${i+1} (id: ${q.id}) - correct:`, q.correct, "type:", typeof q.correct);
+        });
+    }
     
     // Автофокус на поле имени
     playerNameInput.focus();
@@ -602,4 +700,19 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error("❌ Firebase не загружен!");
         alert("Ошибка загрузки базы данных. Обновите страницу.");
     }
+    
+    if (!window.QUIZ_DATA) {
+        console.error("❌ QUIZ_DATA не загружен!");
+        alert("Ошибка загрузки вопросов. Обновите страницу.");
+    }
 });
+
+// Стили для анимации пульсации
+const timerStyles = document.createElement('style');
+timerStyles.textContent = `
+    @keyframes pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.7; transform: scale(1.05); }
+    }
+`;
+document.head.appendChild(timerStyles);
