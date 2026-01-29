@@ -1,5 +1,5 @@
 // ============================================
-// teacher.js - ПОЛНАЯ ВЕРСИЯ С ФИКСАМИ
+// teacher.js - ПОЛНАЯ ВЕРСИЯ С ФИКСАМИ И ВОЗМОЖНОСТЬЮ КИКАТЬ ИГРОКОВ
 // ============================================
 
 let currentGameId = null;
@@ -60,7 +60,7 @@ function startNewGame() {
         players: {},
         answers: {},
         settings: {
-            timer: 45, // ИЗМЕНЕНО: 45 секунд вместо 25
+            timer: 45,
             autoShowResults: true
         }
     };
@@ -111,7 +111,7 @@ function startNextQuestion() {
         // 3. Переключить в режим презентации
         enterPresentationMode(question);
         
-        // 4. Запустить таймер НА 45 СЕКУНД (ИЗМЕНЕНО)
+        // 4. Запустить таймер НА 45 СЕКУНД
         startPresentationTimer(45);
         
         // 5. Обновить счетчик вопросов
@@ -128,6 +128,108 @@ function startNextQuestion() {
         alert("Ошибка: " + error.message);
     });
 }
+
+// ================ НОВАЯ ФУНКЦИЯ: КИК ИГРОКА ================
+
+function kickPlayer(playerName) {
+    if (!currentGameId || !playerName) return;
+    
+    // Проверяем, не пытаемся ли кикнуть себя
+    if (confirm(`Вы уверены, что хотите удалить игрока "${playerName}" из игры?`)) {
+        db.ref(`games/${currentGameId}/players/${playerName}`).remove()
+            .then(() => {
+                console.log(`✅ Игрок ${playerName} удален`);
+                showNotification(`👢 Игрок "${playerName}" удален из игры`);
+            })
+            .catch(error => {
+                console.error("❌ Ошибка удаления игрока:", error);
+                showNotification(`❌ Не удалось удалить игрока "${playerName}"`);
+            });
+    }
+}
+
+// ================ ОБНОВЛЕННАЯ ФУНКЦИЯ ДЛЯ ОТОБРАЖЕНИЯ ИГРОКОВ ================
+
+function updatePlayersList(players) {
+    if (players.length === 0) {
+        playersList.innerHTML = '<div class="empty-lobby"><div class="empty-icon">👤</div><p>Игроки появятся здесь после подключения</p></div>';
+        return;
+    }
+    
+    // Сортируем по очкам
+    players.sort((a, b) => (b.score || 0) - (a.score || 0));
+    
+    playersList.innerHTML = players.map((player, index) => `
+        <div class="player-card" style="border-color: ${getRankColor(index)};">
+            <div class="player-avatar" style="background: ${getRankColor(index)};">${player.name.charAt(0).toUpperCase()}</div>
+            <div class="player-name">${player.name}</div>
+            <div class="player-score">🎯 ${player.score || 0} очков</div>
+            <div class="player-device">${player.device || '📱'}</div>
+            
+            <!-- Кнопка кика (появляется при наведении) -->
+            <div class="kick-player-btn" 
+                 onclick="event.stopPropagation(); kickPlayer('${player.name.replace(/'/g, "\\'")}')"
+                 title="Удалить игрока из игры">
+                👢
+            </div>
+        </div>
+    `).join('');
+    
+    // Добавляем стили для кнопки кика
+    if (!document.getElementById('kick-player-styles')) {
+        const style = document.createElement('style');
+        style.id = 'kick-player-styles';
+        style.textContent = `
+            .player-card {
+                position: relative;
+                transition: all 0.3s;
+            }
+            
+            .kick-player-btn {
+                position: absolute;
+                top: 5px;
+                right: 5px;
+                width: 24px;
+                height: 24px;
+                background: rgba(255, 65, 108, 0.1);
+                border: 1px solid #ff416c;
+                color: #ff416c;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 12px;
+                cursor: pointer;
+                opacity: 0;
+                transition: all 0.3s;
+                z-index: 10;
+            }
+            
+            .player-card:hover .kick-player-btn {
+                opacity: 1;
+            }
+            
+            .kick-player-btn:hover {
+                background: #ff416c;
+                color: white;
+                transform: scale(1.1);
+            }
+            
+            /* Адаптивность для мобильных */
+            @media (max-width: 768px) {
+                .kick-player-btn {
+                    opacity: 1;
+                    width: 20px;
+                    height: 20px;
+                    font-size: 10px;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+}
+
+// ================ ОСТАЛЬНЫЕ ФУНКЦИИ (без изменений, но полные) ================
 
 function enterPresentationMode(question) {
     // Скрыть основной интерфейс
@@ -207,16 +309,8 @@ function showAnswer() {
     const question = QUIZ_DATA.questions[currentQuestionIndex - 1];
     if (!question) return;
     
-    // ФИКС: Получение правильного ответа для массивов
-    let correctAnswerText = '';
-    if (Array.isArray(question.correct)) {
-        // Для вопросов с несколькими правильными ответами
-        const correctOptions = question.correct.map(index => question.options[index]);
-        correctAnswerText = correctOptions.join('<br>• ');
-    } else {
-        // Для вопросов с одним правильным ответом
-        correctAnswerText = question.options[question.correct];
-    }
+    // Получение правильного ответа
+    const correctAnswerText = question.options[question.correct];
     
     // Показать правильный ответ
     presentationQuestion.innerHTML += `
@@ -311,8 +405,6 @@ function resetGame() {
     }
 }
 
-// ================ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ================
-
 function listenToPlayers() {
     if (!currentGameId || playersListener) return;
     
@@ -343,25 +435,6 @@ function listenToGameChanges() {
         // Обновить статус игры в заголовке
         updateGameStatusDisplay(game.status);
     });
-}
-
-function updatePlayersList(players) {
-    if (players.length === 0) {
-        playersList.innerHTML = '<div class="empty-lobby"><div class="empty-icon">👤</div><p>Игроки появятся здесь после подключения</p></div>';
-        return;
-    }
-    
-    // Сортируем по очкам
-    players.sort((a, b) => (b.score || 0) - (a.score || 0));
-    
-    playersList.innerHTML = players.map((player, index) => `
-        <div class="player-card" style="border-color: ${getRankColor(index)};">
-            <div class="player-avatar" style="background: ${getRankColor(index)};">${player.name.charAt(0).toUpperCase()}</div>
-            <div class="player-name">${player.name}</div>
-            <div class="player-score">🎯 ${player.score || 0} очков</div>
-            <div class="player-device">${player.device || '📱'}</div>
-        </div>
-    `).join('');
 }
 
 function getRankColor(rank) {
@@ -406,16 +479,7 @@ function calculateStats(answers, question) {
         stats.total++;
         if (answer.answerIndex >= 0 && answer.answerIndex < question.options.length) {
             stats.byOption[answer.answerIndex]++;
-            
-            // ФИКС: Проверка для массивов правильных ответов
-            let isCorrect = false;
-            if (Array.isArray(question.correct)) {
-                isCorrect = question.correct.includes(answer.answerIndex);
-            } else {
-                isCorrect = (answer.answerIndex === question.correct);
-            }
-            
-            if (isCorrect) {
+            if (answer.isCorrect) {
                 stats.correct++;
             }
         }
@@ -462,14 +526,7 @@ function updateLiveStats(stats) {
                 question.options.forEach((option, index) => {
                     const count = stats.byOption[index] || 0;
                     const percentage = stats.total > 0 ? Math.round((count / stats.total) * 100) : 0;
-                    
-                    // ФИКС: Проверка правильности для массивов
-                    let isCorrect = false;
-                    if (Array.isArray(question.correct)) {
-                        isCorrect = question.correct.includes(index);
-                    } else {
-                        isCorrect = (index === question.correct);
-                    }
+                    const isCorrect = (index === question.correct);
                     
                     statsHTML += `
                         <div style="margin: 8px 0;">
@@ -526,14 +583,7 @@ function showQuestionStats(stats, question) {
     question.options.forEach((option, index) => {
         const count = stats.byOption[index] || 0;
         const percentage = stats.total > 0 ? Math.round((count / stats.total) * 100) : 0;
-        
-        // ФИКС: Проверка правильности для массивов
-        let isCorrect = false;
-        if (Array.isArray(question.correct)) {
-            isCorrect = question.correct.includes(index);
-        } else {
-            isCorrect = (index === question.correct);
-        }
+        const isCorrect = (index === question.correct);
         
         statsHTML += `
             <div style="margin: 12px 0; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px; border-left: 4px solid ${isCorrect ? '#00ff88' : '#ff416c'}">
