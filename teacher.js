@@ -1,5 +1,5 @@
 // ============================================
-// teacher.js - ПОЛНАЯ ВЕРСИЯ
+// teacher.js - ПОЛНАЯ ВЕРСИЯ С ФИКСАМИ
 // ============================================
 
 let currentGameId = null;
@@ -8,6 +8,7 @@ let playersListener = null;
 let gameListener = null;
 let currentStats = null;
 let presentationTimerInterval = null;
+let updateLiveStatsInterval = null;
 
 // Элементы DOM
 const startSection = document.getElementById('startSection');
@@ -59,7 +60,7 @@ function startNewGame() {
         players: {},
         answers: {},
         settings: {
-            timer: 25, // ВСЕГДА 25 СЕКУНД
+            timer: 45, // ИЗМЕНЕНО: 45 секунд вместо 25
             autoShowResults: true
         }
     };
@@ -110,8 +111,8 @@ function startNextQuestion() {
         // 3. Переключить в режим презентации
         enterPresentationMode(question);
         
-        // 4. Запустить таймер НА 25 СЕКУНД
-        startPresentationTimer(25);
+        // 4. Запустить таймер НА 45 СЕКУНД (ИЗМЕНЕНО)
+        startPresentationTimer(45);
         
         // 5. Обновить счетчик вопросов
         currentQuestionIndex++;
@@ -189,15 +190,39 @@ function exitPresentation() {
     }
 }
 
+function toggleCompactMode() {
+    const questionElement = document.getElementById('presentationQuestion');
+    const btn = document.getElementById('compactBtn');
+    
+    if (questionElement.classList.contains('compact')) {
+        questionElement.classList.remove('compact');
+        btn.innerHTML = '📱 КОМПАКТНО';
+    } else {
+        questionElement.classList.add('compact');
+        btn.innerHTML = '📊 ПОЛНЫЙ ВИД';
+    }
+}
+
 function showAnswer() {
     const question = QUIZ_DATA.questions[currentQuestionIndex - 1];
     if (!question) return;
+    
+    // ФИКС: Получение правильного ответа для массивов
+    let correctAnswerText = '';
+    if (Array.isArray(question.correct)) {
+        // Для вопросов с несколькими правильными ответами
+        const correctOptions = question.correct.map(index => question.options[index]);
+        correctAnswerText = correctOptions.join('<br>• ');
+    } else {
+        // Для вопросов с одним правильным ответом
+        correctAnswerText = question.options[question.correct];
+    }
     
     // Показать правильный ответ
     presentationQuestion.innerHTML += `
         <div style="margin-top: 40px; padding: 25px; background: rgba(0, 255, 136, 0.1); border-radius: 15px; border: 3px solid #00ff88;">
             <h3 style="color: #00ff88; margin-top: 0; font-size: 24px;">✅ ПРАВИЛЬНЫЙ ОТВЕТ:</h3>
-            <div style="font-size: 28px; color: white; margin: 20px 0; font-weight: bold;">${question.options[question.correct]}</div>
+            <div style="font-size: 28px; color: white; margin: 20px 0; font-weight: bold;">${correctAnswerText}</div>
             <div style="color: #8f8f8f; font-style: italic; font-size: 18px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">${question.explanation}</div>
         </div>
     `;
@@ -381,7 +406,16 @@ function calculateStats(answers, question) {
         stats.total++;
         if (answer.answerIndex >= 0 && answer.answerIndex < question.options.length) {
             stats.byOption[answer.answerIndex]++;
-            if (answer.answerIndex === question.correct) {
+            
+            // ФИКС: Проверка для массивов правильных ответов
+            let isCorrect = false;
+            if (Array.isArray(question.correct)) {
+                isCorrect = question.correct.includes(answer.answerIndex);
+            } else {
+                isCorrect = (answer.answerIndex === question.correct);
+            }
+            
+            if (isCorrect) {
                 stats.correct++;
             }
         }
@@ -420,31 +454,40 @@ function updateLiveStats(stats) {
         
         // Добавить прогресс-бары для каждого варианта
         if (stats.total > 0) {
-            statsHTML += `<div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
-                <div style="color: #00adb5; font-weight: bold; margin-bottom: 10px;">Распределение ответов:</div>`;
-            
-            const options = QUIZ_DATA.questions.find(q => q.id == currentStats?.questionId)?.options || [];
-            options.forEach((option, index) => {
-                const count = stats.byOption[index] || 0;
-                const percentage = stats.total > 0 ? Math.round((count / stats.total) * 100) : 0;
-                const isCorrect = index === QUIZ_DATA.questions.find(q => q.id == currentStats?.questionId)?.correct;
+            const question = QUIZ_DATA.questions.find(q => q.id == currentStats?.questionId);
+            if (question && question.options) {
+                statsHTML += `<div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+                    <div style="color: #00adb5; font-weight: bold; margin-bottom: 10px;">Распределение ответов:</div>`;
                 
-                statsHTML += `
-                    <div style="margin: 8px 0;">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
-                            <span style="color: ${isCorrect ? '#00ff88' : 'white'}">
-                                ${String.fromCharCode(65 + index)}. ${option.substring(0, 30)}${option.length > 30 ? '...' : ''}
-                            </span>
-                            <span style="color: #8f8f8f">${count} (${percentage}%)</span>
+                question.options.forEach((option, index) => {
+                    const count = stats.byOption[index] || 0;
+                    const percentage = stats.total > 0 ? Math.round((count / stats.total) * 100) : 0;
+                    
+                    // ФИКС: Проверка правильности для массивов
+                    let isCorrect = false;
+                    if (Array.isArray(question.correct)) {
+                        isCorrect = question.correct.includes(index);
+                    } else {
+                        isCorrect = (index === question.correct);
+                    }
+                    
+                    statsHTML += `
+                        <div style="margin: 8px 0;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+                                <span style="color: ${isCorrect ? '#00ff88' : 'white'}">
+                                    ${String.fromCharCode(65 + index)}. ${option.substring(0, 30)}${option.length > 30 ? '...' : ''}
+                                </span>
+                                <span style="color: #8f8f8f">${count} (${percentage}%)</span>
+                            </div>
+                            <div style="height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;">
+                                <div style="height: 100%; width: ${percentage}%; background: ${isCorrect ? '#00ff88' : '#ff416c'}; transition: width 0.5s;"></div>
+                            </div>
                         </div>
-                        <div style="height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;">
-                            <div style="height: 100%; width: ${percentage}%; background: ${isCorrect ? '#00ff88' : '#ff416c'}; transition: width 0.5s;"></div>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            statsHTML += `</div>`;
+                    `;
+                });
+                
+                statsHTML += `</div>`;
+            }
         }
         
         statsHTML += `</div>`;
@@ -483,7 +526,14 @@ function showQuestionStats(stats, question) {
     question.options.forEach((option, index) => {
         const count = stats.byOption[index] || 0;
         const percentage = stats.total > 0 ? Math.round((count / stats.total) * 100) : 0;
-        const isCorrect = index === question.correct;
+        
+        // ФИКС: Проверка правильности для массивов
+        let isCorrect = false;
+        if (Array.isArray(question.correct)) {
+            isCorrect = question.correct.includes(index);
+        } else {
+            isCorrect = (index === question.correct);
+        }
         
         statsHTML += `
             <div style="margin: 12px 0; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px; border-left: 4px solid ${isCorrect ? '#00ff88' : '#ff416c'}">
@@ -567,7 +617,11 @@ function getTypeLabel(type) {
         morphology: "Морфология",
         reading: "Чтение",
         stylistics: "Стилистика",
-        lexicology: "Лексикология"
+        lexicology: "Лексикология",
+        writing: "Изложение",
+        composition: "Сочинение",
+        exam_rules: "Правила ОГЭ",
+        grading: "Оценивание"
     };
     return labels[type] || type;
 }
@@ -591,7 +645,7 @@ function startPresentationTimer(seconds) {
         if (timeLeft <= 5) {
             presentationTimer.style.color = '#ff416c';
             presentationTimer.style.animation = 'pulse 0.5s infinite';
-        } else if (timeLeft <= 10) {
+        } else if (timeLeft <= 15) {
             presentationTimer.style.color = '#ff9e00';
             presentationTimer.style.animation = 'none';
         }
