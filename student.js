@@ -1,5 +1,5 @@
 // ============================================
-// student.js - ПОЛНАЯ ВЕРСИЯ С ФИКСАМИ И ОТЛАДКОЙ
+// student.js - ПОЛНАЯ ВЕРСИЯ С ФИКСАМИ И ОТЛАДКОЙ + СИСТЕМА КИКА
 // ============================================
 
 let currentGameId = null;
@@ -9,6 +9,7 @@ let hasAnswered = false;
 let timerInterval = null;
 let gameListener = null;
 let selectedOption = null;
+let kickListener = null; // Новый слушатель для киков
 
 // DOM элементы
 const joinScreen = document.getElementById('joinScreen');
@@ -39,11 +40,6 @@ function getCorrectAnswer(question) {
     }
     
     let correct = question.correct;
-    console.log("🔍 getCorrectAnswer входные данные:", {
-        correct: correct,
-        type: typeof correct,
-        isArray: Array.isArray(correct)
-    });
     
     // Если это строка, пытаемся преобразовать
     if (typeof correct === 'string') {
@@ -55,15 +51,8 @@ function getCorrectAnswer(question) {
             }
         } catch (e) {
             console.error("❌ Ошибка преобразования correct:", e);
-            // Оставляем как есть
         }
     }
-    
-    console.log("🔍 getCorrectAnswer результат:", {
-        correct: correct,
-        type: typeof correct,
-        isArray: Array.isArray(correct)
-    });
     
     return correct;
 }
@@ -107,6 +96,42 @@ function getCorrectAnswerText(question) {
     return "Ошибка формата ответа";
 }
 
+// ================ СИСТЕМА КИКА ОТ МОДЕРАТОРА ================
+
+// Функция проверки киков от модератора
+function setupKickListener() {
+    if (!currentGameId || !playerName) return;
+    
+    console.log(`👂 Начинаю слушать команды кика для ${playerName} в игре ${currentGameId}`);
+    
+    // Слушаем команды кика
+    kickListener = db.ref(`kick_commands/${currentGameId}/${playerName}`).on('value', snapshot => {
+        const kickCommand = snapshot.val();
+        
+        if (kickCommand && kickCommand.command === "FORCE_KICK") {
+            console.log("🚫 Получена команда кика от модератора:", kickCommand);
+            
+            // Показываем сообщение
+            if (confirm("❌ Модератор удалил вас из игры. Нажмите OK для выхода.")) {
+                // Выходим из игры
+                leaveGame();
+                
+                // Удаляем команду кика
+                db.ref(`kick_commands/${currentGameId}/${playerName}`).remove()
+                    .then(() => {
+                        console.log("✅ Команда кика очищена");
+                    });
+            } else {
+                // Все равно выходим, даже если нажал "Отмена"
+                leaveGame();
+                db.ref(`kick_commands/${currentGameId}/${playerName}`).remove();
+            }
+        }
+    }, error => {
+        console.error("❌ Ошибка слушателя киков:", error);
+    });
+}
+
 // ================ ОСНОВНЫЕ ФУНКЦИИ ================
 
 function joinGame() {
@@ -129,6 +154,8 @@ function joinGame() {
     
     playerName = name;
     currentGameId = "game_" + code;
+    
+    console.log(`🎮 Пытаюсь подключиться как ${name} к игре ${currentGameId}`);
     
     // Проверить игру в Firebase
     db.ref(`games/${currentGameId}`).once('value').then(snapshot => {
@@ -169,13 +196,18 @@ function joinGame() {
             // Начать слушать игру
             listenToGame();
             
+            // НАЧАТЬ ПРОВЕРКУ КОМАНД КИКА ОТ МОДЕРАТОРА
+            setupKickListener();
+            
             console.log(`✅ Ученик подключен: ${name} к игре ${code}`);
             
         }).catch(error => {
+            console.error("❌ Ошибка регистрации игрока:", error);
             alert("Ошибка подключения: " + error.message);
         });
         
     }).catch(error => {
+        console.error("❌ Ошибка проверки игры:", error);
         alert("Ошибка сети: " + error.message);
     });
 }
@@ -188,6 +220,7 @@ function listenToGame() {
     gameListener = db.ref(`games/${currentGameId}`).on('value', snapshot => {
         const game = snapshot.val();
         if (!game) {
+            console.log("⚠️ Игра была удалена учителем");
             alert("Игра была удалена учителем");
             leaveGame();
             return;
@@ -197,6 +230,14 @@ function listenToGame() {
         if (game.players) {
             const playerCount = Object.keys(game.players).length;
             roomPlayers.textContent = playerCount;
+            
+            // Проверить, не удалили ли нас
+            if (!game.players[playerName]) {
+                console.log("⚠️ Игрок удален из игры");
+                alert("Вас удалили из игры");
+                leaveGame();
+                return;
+            }
         }
         
         // Определить текущий вопрос
@@ -226,6 +267,8 @@ function listenToGame() {
                 handleGameFinished();
                 break;
         }
+    }, error => {
+        console.error("❌ Ошибка слушателя игры:", error);
     });
 }
 
@@ -251,11 +294,7 @@ function handleQuestionActive(game, questionId) {
         return;
     }
     
-    console.log("🔍 Загружен вопрос:", {
-        id: currentQuestion.id,
-        correct: currentQuestion.correct,
-        type: typeof currentQuestion.correct
-    });
+    console.log(`❓ Вопрос ${currentQuestion.id}: ${currentQuestion.type}`);
     
     // Сбросить состояние ответа
     hasAnswered = false;
@@ -270,7 +309,7 @@ function handleQuestionActive(game, questionId) {
     // Запустить таймер НА 45 СЕКУНД
     startTimer(45);
     
-    console.log(`❓ Вопрос ${currentQuestion.id}: ${currentQuestion.type}`);
+    console.log(`✅ Вопрос ${currentQuestion.id} загружен`);
 }
 
 function displayQuestion(question) {
@@ -331,10 +370,9 @@ function submitAnswer(answerIndex, timeSpent) {
     hasAnswered = true;
     clearTimer();
     
-    console.log("🔍 submitAnswer вызван:", {
+    console.log("📤 Отправка ответа:", {
         answerIndex,
         currentQuestionId: currentQuestion?.id,
-        currentQuestionCorrect: currentQuestion?.correct,
         playerName,
         timeSpent
     });
@@ -348,7 +386,7 @@ function submitAnswer(answerIndex, timeSpent) {
     // Проверка правильности
     const isCorrect = checkAnswerCorrectness(answerIndex, currentQuestion);
     
-    console.log("🔍 Результат проверки:", isCorrect);
+    console.log("✅ Результат проверки:", isCorrect);
     
     // Отправить ответ в Firebase
     const answerData = {
@@ -376,7 +414,7 @@ function submitAnswer(answerIndex, timeSpent) {
         console.log(`📤 Ответ отправлен: вариант ${answerIndex} (${isCorrect ? 'правильно' : 'неправильно'})`);
         
     }).catch(error => {
-        console.error("Ошибка отправки ответа:", error);
+        console.error("❌ Ошибка отправки ответа:", error);
         answerStatus.innerHTML = '⚠️ Ошибка отправки ответа';
         answerStatus.style.color = '#ff9e00';
     });
@@ -464,13 +502,6 @@ function handleShowingResults(game, questionId) {
 }
 
 function showResult(userAnswer, question) {
-    console.log("🔍 showResult вызван:", {
-        userAnswer,
-        questionId: question?.id,
-        questionCorrect: question?.correct,
-        questionOptions: question?.options?.length
-    });
-    
     let resultHTML = '';
     
     if (userAnswer && userAnswer.answerIndex >= 0) {
@@ -479,12 +510,6 @@ function showResult(userAnswer, question) {
         
         // Получение правильного ответа
         const correctAnswerText = getCorrectAnswerText(question);
-        
-        console.log("🔍 Данные для отображения:", {
-            isCorrect,
-            userAnswerText,
-            correctAnswerText
-        });
         
         resultHTML = `
             <div class="result-header" style="color: ${isCorrect ? '#00ff88' : '#ff416c'}; font-size: 24px; margin-bottom: 20px;">
@@ -512,8 +537,6 @@ function showResult(userAnswer, question) {
     } else {
         // Получение правильного ответа
         const correctAnswerText = getCorrectAnswerText(question);
-        
-        console.log("🔍 Пользователь не ответил, правильный ответ:", correctAnswerText);
         
         resultHTML = `
             <div class="result-header" style="color: #ff9e00; font-size: 24px; margin-bottom: 20px;">
@@ -588,14 +611,29 @@ function handleGameFinished() {
 }
 
 function leaveGame() {
-    if (currentGameId && playerName) {
-        db.ref(`games/${currentGameId}/players/${playerName}`).remove();
+    console.log(`🚪 Выход из игры: ${playerName} из ${currentGameId}`);
+    
+    // Отписаться от слушателя киков
+    if (kickListener) {
+        kickListener();
+        kickListener = null;
     }
     
-    // Отписаться от слушателя
+    // Отписаться от слушателя игры
     if (gameListener) {
         gameListener();
         gameListener = null;
+    }
+    
+    // Удалить себя из базы
+    if (currentGameId && playerName) {
+        db.ref(`games/${currentGameId}/players/${playerName}`).remove()
+            .then(() => {
+                console.log(`✅ Игрок ${playerName} удален из Firebase`);
+            })
+            .catch(error => {
+                console.error("❌ Ошибка удаления игрока:", error);
+            });
     }
     
     // Сбросить состояние
@@ -673,10 +711,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (window.QUIZ_DATA && window.QUIZ_DATA.questions) {
         console.log(`📚 Загружено ${QUIZ_DATA.questions.length} вопросов`);
-        // Логируем правильные ответы для отладки
-        QUIZ_DATA.questions.forEach((q, i) => {
-            console.log(`🔍 Вопрос ${i+1} (id: ${q.id}) - correct:`, q.correct, "type:", typeof q.correct);
-        });
     }
     
     // Автофокус на поле имени
@@ -705,6 +739,36 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error("❌ QUIZ_DATA не загружен!");
         alert("Ошибка загрузки вопросов. Обновите страницу.");
     }
+    
+    // Добавляем кнопку принудительного выхода для отладки
+    const debugBtn = document.createElement('button');
+    debugBtn.textContent = '🐛';
+    debugBtn.title = 'Отладка';
+    debugBtn.style.cssText = `
+        position: fixed;
+        bottom: 10px;
+        right: 10px;
+        background: #7209b7;
+        color: white;
+        width: 30px;
+        height: 30px;
+        border: none;
+        border-radius: 50%;
+        font-size: 14px;
+        z-index: 9998;
+        opacity: 0.3;
+        cursor: pointer;
+    `;
+    debugBtn.onclick = function() {
+        console.log("🐛 Отладка:", {
+            currentGameId,
+            playerName,
+            hasAnswered,
+            currentQuestion
+        });
+        alert(`Отладка:\nИгра: ${currentGameId || 'нет'}\nИгрок: ${playerName || 'нет'}\nОтветил: ${hasAnswered ? 'да' : 'нет'}`);
+    };
+    document.body.appendChild(debugBtn);
 });
 
 // Стили для анимации пульсации
