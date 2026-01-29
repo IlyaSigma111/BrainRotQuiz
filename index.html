@@ -2,126 +2,490 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>КАКАхут - Главная</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ОГЭ КАКАхут - Главная</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* МОБИЛЬНАЯ ОПТИМИЗАЦИЯ */
+        @media (max-width: 768px) {
+            .home-header h1 {
+                font-size: 28px !important;
+            }
+            
+            .subtitle {
+                font-size: 14px !important;
+                padding: 0 10px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr !important;
+                gap: 15px !important;
+                padding: 0 10px;
+            }
+            
+            .role-selection {
+                grid-template-columns: 1fr !important;
+                padding: 0 10px;
+            }
+            
+            .role-card {
+                padding: 20px !important;
+            }
+            
+            .steps {
+                grid-template-columns: 1fr !important;
+            }
+            
+            .step {
+                margin-bottom: 15px;
+            }
+            
+            .home-footer {
+                padding: 20px 15px !important;
+                font-size: 12px;
+            }
+            
+            .tech-stack {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            
+            .tech-item {
+                font-size: 11px;
+                padding: 4px 8px;
+            }
+            
+            /* Улучшаем кнопки для касаний */
+            .btn {
+                padding: 14px !important;
+                font-size: 16px !important;
+                min-height: 50px;
+            }
+            
+            /* Увеличиваем область клика для подписи */
+            #moderatorSignature {
+                padding: 5px 10px;
+                display: inline-block;
+                margin: 5px 0;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .home-header h1 {
+                font-size: 24px !important;
+            }
+            
+            .logo {
+                font-size: 40px !important;
+            }
+            
+            .card {
+                padding: 15px !important;
+                margin: 10px !important;
+            }
+        }
+        
+        /* Анимации для мобильных */
+        @media (prefers-reduced-motion: no-preference) {
+            .role-card:hover {
+                transform: translateY(-5px) scale(1.02);
+            }
+        }
+        
+        /* Лучшая поддержка сенсорных устройств */
+        .btn, .role-card, .step {
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        /* Предотвращение масштабирования при двойном тапе */
+        * {
+            touch-action: manipulation;
+        }
+    </style>
 </head>
 <body class="home-page">
     <div class="container">
         <header class="home-header">
-            <div class="logo">🎓</div>
-            <h1>КАКАХУТ</h1>
-            <p class="subtitle">Интерактивная подготовка к ОГЭ и устному собеседованию по русскому языку</p>
+            <div class="logo" style="font-size: 48px; animation: bounce 2s infinite;">🎓</div>
+            <h1 style="font-size: 36px; margin: 10px 0 5px 0;">ОГЭ КАХУТ</h1>
+            <p class="subtitle" style="color: #8f8f8f; font-size: 16px; margin-bottom: 30px;">
+                Интерактивная подготовка к ОГЭ 2025 по русскому языку
+            </p>
         </header>
 
-        <div class="stats-grid">
-            <div class="stat-item">
-                <div class="stat-icon">📚</div>
-                <h4>30+ заданий</h4>
-                <p>ОГЭ и устное собеседование</p>
+        <div class="stats-grid" style="
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        ">
+            <div class="stat-item" style="
+                background: rgba(0, 173, 181, 0.1);
+                padding: 20px;
+                border-radius: 10px;
+                text-align: center;
+                border: 1px solid rgba(0, 173, 181, 0.3);
+            ">
+                <div class="stat-icon" style="font-size: 32px; margin-bottom: 10px;">📚</div>
+                <h4 style="margin: 0 0 5px 0; color: white;">15+ заданий</h4>
+                <p style="margin: 0; color: #8f8f8f; font-size: 14px;">Из демоверсии ОГЭ 2025</p>
             </div>
-            <div class="stat-item">
-                <div class="stat-icon">⚡</div>
-                <h4>Реальное время</h4>
-                <p>Мгновенная обратная связь</p>
+            <div class="stat-item" style="
+                background: rgba(67, 97, 238, 0.1);
+                padding: 20px;
+                border-radius: 10px;
+                text-align: center;
+                border: 1px solid rgba(67, 97, 238, 0.3);
+            ">
+                <div class="stat-icon" style="font-size: 32px; margin-bottom: 10px;">⚡</div>
+                <h4 style="margin: 0 0 5px 0; color: white;">Реальное время</h4>
+                <p style="margin: 0; color: #8f8f8f; font-size: 14px;">Статистика в реальном времени</p>
             </div>
-            <div class="stat-item">
-                <div class="stat-icon">📱</div>
-                <h4>На любом устройстве</h4>
-                <p>Телефон, планшет, компьютер</p>
+            <div class="stat-item" style="
+                background: rgba(114, 9, 183, 0.1);
+                padding: 20px;
+                border-radius: 10px;
+                text-align: center;
+                border: 1px solid rgba(114, 9, 183, 0.3);
+            ">
+                <div class="stat-icon" style="font-size: 32px; margin-bottom: 10px;">📱</div>
+                <h4 style="margin: 0 0 5px 0; color: white;">Мобильный</h4>
+                <p style="margin: 0; color: #8f8f8f; font-size: 14px;">Оптимизировано для телефонов</p>
             </div>
-            <div class="stat-item">
-                <div class="stat-icon">👥</div>
-                <h4>Для всего класса</h4>
-                <p>Неограниченное число игроков</p>
+            <div class="stat-item" style="
+                background: rgba(76, 201, 240, 0.1);
+                padding: 20px;
+                border-radius: 10px;
+                text-align: center;
+                border: 1px solid rgba(76, 201, 240, 0.3);
+            ">
+                <div class="stat-icon" style="font-size: 32px; margin-bottom: 10px;">👥</div>
+                <h4 style="margin: 0 0 5px 0; color: white;">Безлимитно</h4>
+                <p style="margin: 0; color: #8f8f8f; font-size: 14px;">Неограниченное число игроков</p>
             </div>
         </div>
 
-        <div class="role-selection">
-            <div class="role-card teacher-card">
-                <div class="role-icon">👨‍🏫</div>
-                <h3>УЧИТЕЛЬ</h3>
-                <p>Запускаете игру на смарт-доске, управляете вопросами, видите статистику ответов класса в реальном времени.</p>
-                <a href="teacher.html" class="btn btn-primary">
-                    <i class="fas fa-chalkboard"></i> ОТКРЫТЬ ДОСКУ
+        <div class="role-selection" style="
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin: 40px 0;
+        ">
+            <div class="role-card teacher-card" style="
+                background: linear-gradient(135deg, rgba(67, 97, 238, 0.2), rgba(58, 12, 163, 0.2));
+                padding: 25px;
+                border-radius: 15px;
+                border: 2px solid #4361ee;
+                transition: all 0.3s;
+            ">
+                <div class="role-icon" style="font-size: 48px; text-align: center; margin-bottom: 15px;">👨‍🏫</div>
+                <h3 style="text-align: center; color: white; margin-bottom: 15px;">УЧИТЕЛЬ</h3>
+                <p style="color: #94a3b8; line-height: 1.6; margin-bottom: 25px; text-align: center;">
+                    Запускайте игру на смарт-доске, управляйте вопросами, видите статистику ответов класса в реальном времени.
+                </p>
+                <a href="teacher.html" class="btn btn-primary" style="
+                    display: block;
+                    padding: 15px;
+                    background: linear-gradient(45deg, #4361ee, #3a0ca3);
+                    color: white;
+                    border: none;
+                    border-radius: 10px;
+                    font-size: 16px;
+                    font-weight: bold;
+                    text-align: center;
+                    text-decoration: none;
+                    cursor: pointer;
+                    transition: all 0.3s;
+                ">
+                    <i class="fas fa-chalkboard"></i> ОТКРЫТЬ ПАНЕЛЬ УПРАВЛЕНИЯ
                 </a>
             </div>
 
-            <div class="role-card student-card">
-                <div class="role-icon">🧑‍🎓</div>
-                <h3>УЧЕНИК</h3>
-                <p>Подключаетесь с телефона, отвечаете на вопросы, видите свой прогресс и соревнуетесь с одноклассниками.</p>
-                <a href="student.html" class="btn btn-success">
-                    <i class="fas fa-mobile-alt"></i> ПОДКЛЮЧИТЬСЯ
+            <div class="role-card student-card" style="
+                background: linear-gradient(135deg, rgba(76, 201, 240, 0.2), rgba(0, 119, 182, 0.2));
+                padding: 25px;
+                border-radius: 15px;
+                border: 2px solid #4cc9f0;
+                transition: all 0.3s;
+            ">
+                <div class="role-icon" style="font-size: 48px; text-align: center; margin-bottom: 15px;">🧑‍🎓</div>
+                <h3 style="text-align: center; color: white; margin-bottom: 15px;">УЧЕНИК</h3>
+                <p style="color: #94a3b8; line-height: 1.6; margin-bottom: 25px; text-align: center;">
+                    Подключайтесь с телефона, отвечайте на вопросы, видите свой прогресс и соревнуйтесь с одноклассниками.
+                </p>
+                <a href="student.html" class="btn btn-success" style="
+                    display: block;
+                    padding: 15px;
+                    background: linear-gradient(45deg, #4cc9f0, #0077b6);
+                    color: white;
+                    border: none;
+                    border-radius: 10px;
+                    font-size: 16px;
+                    font-weight: bold;
+                    text-align: center;
+                    text-decoration: none;
+                    cursor: pointer;
+                    transition: all 0.3s;
+                ">
+                    <i class="fas fa-mobile-alt"></i> ПОДКЛЮЧИТЬСЯ С ТЕЛЕФОНА
                 </a>
             </div>
         </div>
 
-        <div class="card mt-xl">
-            <h3><i class="fas fa-info-circle"></i> Как это работает</h3>
-            <div class="steps">
-                <div class="step">
-                    <span class="step-number">1</span>
-                    <p><strong>Учитель</strong> открывает панель управления на смарт-доске</p>
+        <div class="card mt-xl" style="
+            background: rgba(30, 41, 59, 0.8);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 30px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        ">
+            <h3 style="color: white; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-info-circle" style="color: #4361ee;"></i> Как это работает
+            </h3>
+            <div class="steps" style="
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 20px;
+                margin-top: 20px;
+            ">
+                <div class="step" style="
+                    background: rgba(255, 255, 255, 0.05);
+                    padding: 15px;
+                    border-radius: 10px;
+                    border-left: 4px solid #4361ee;
+                ">
+                    <span class="step-number" style="
+                        display: inline-block;
+                        width: 30px;
+                        height: 30px;
+                        background: #4361ee;
+                        color: white;
+                        border-radius: 50%;
+                        text-align: center;
+                        line-height: 30px;
+                        font-weight: bold;
+                        margin-right: 10px;
+                    ">1</span>
+                    <p style="margin: 0; color: #94a3b8;">
+                        <strong style="color: white;">Учитель</strong> открывает панель управления на смарт-доске
+                    </p>
                 </div>
-                <div class="step">
-                    <span class="step-number">2</span>
-                    <p><strong>Ученики</strong> подключаются с телефонов по коду игры</p>
+                <div class="step" style="
+                    background: rgba(255, 255, 255, 0.05);
+                    padding: 15px;
+                    border-radius: 10px;
+                    border-left: 4px solid #4cc9f0;
+                ">
+                    <span class="step-number" style="
+                        display: inline-block;
+                        width: 30px;
+                        height: 30px;
+                        background: #4cc9f0;
+                        color: white;
+                        border-radius: 50%;
+                        text-align: center;
+                        line-height: 30px;
+                        font-weight: bold;
+                        margin-right: 10px;
+                    ">2</span>
+                    <p style="margin: 0; color: #94a3b8;">
+                        <strong style="color: white;">Ученики</strong> подключаются с телефонов по коду игры
+                    </p>
                 </div>
-                <div class="step">
-                    <span class="step-number">3</span>
-                    <p><strong>Вопрос появляется</strong> одновременно на доске и телефонах</p>
+                <div class="step" style="
+                    background: rgba(255, 255, 255, 0.05);
+                    padding: 15px;
+                    border-radius: 10px;
+                    border-left: 4px solid #7209b7;
+                ">
+                    <span class="step-number" style="
+                        display: inline-block;
+                        width: 30px;
+                        height: 30px;
+                        background: #7209b7;
+                        color: white;
+                        border-radius: 50%;
+                        text-align: center;
+                        line-height: 30px;
+                        font-weight: bold;
+                        margin-right: 10px;
+                    ">3</span>
+                    <p style="margin: 0; color: #94a3b8;">
+                        <strong style="color: white;">Вопрос появляется</strong> одновременно на доске и телефонах
+                    </p>
                 </div>
-                <div class="step">
-                    <span class="step-number">4</span>
-                    <p><strong>Статистика</strong> показывается после каждого вопроса</p>
+                <div class="step" style="
+                    background: rgba(255, 255, 255, 0.05);
+                    padding: 15px;
+                    border-radius: 10px;
+                    border-left: 4px solid #f72585;
+                ">
+                    <span class="step-number" style="
+                        display: inline-block;
+                        width: 30px;
+                        height: 30px;
+                        background: #f72585;
+                        color: white;
+                        border-radius: 50%;
+                        text-align: center;
+                        line-height: 30px;
+                        font-weight: bold;
+                        margin-right: 10px;
+                    ">4</span>
+                    <p style="margin: 0; color: #94a3b8;">
+                        <strong style="color: white;">Статистика</strong> показывается после каждого вопроса
+                    </p>
                 </div>
             </div>
         </div>
 
-        <footer class="home-footer">
-            <p>Система подготовки к ОГЭ по русскому языку | Работает на Firebase</p>
-            <div class="tech-stack">
-                <span class="tech-item"><i class="fas fa-fire"></i> Firebase</span>
-                <span class="tech-item"><i class="fab fa-html5"></i> HTML5</span>
-                <span class="tech-item"><i class="fab fa-js"></i> JavaScript</span>
-                <span class="tech-item"><i class="fas fa-cloud"></i> GitHub Pages</span>
+        <footer class="home-footer" style="
+            text-align: center;
+            padding: 30px 20px;
+            margin-top: 40px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: #64748b;
+            font-size: 14px;
+        ">
+            <p>Система подготовки к ОГЭ 2025 по русскому языку | Работает на Firebase</p>
+            <div class="tech-stack" style="
+                display: flex;
+                justify-content: center;
+                gap: 15px;
+                margin: 15px 0;
+                flex-wrap: wrap;
+            ">
+                <span class="tech-item" style="
+                    background: rgba(255, 255, 255, 0.05);
+                    padding: 5px 10px;
+                    border-radius: 20px;
+                    font-size: 12px;
+                ">
+                    <i class="fas fa-fire"></i> Firebase
+                </span>
+                <span class="tech-item" style="
+                    background: rgba(255, 255, 255, 0.05);
+                    padding: 5px 10px;
+                    border-radius: 20px;
+                    font-size: 12px;
+                ">
+                    <i class="fab fa-html5"></i> HTML5
+                </span>
+                <span class="tech-item" style="
+                    background: rgba(255, 255, 255, 0.05);
+                    padding: 5px 10px;
+                    border-radius: 20px;
+                    font-size: 12px;
+                ">
+                    <i class="fab fa-js"></i> JavaScript
+                </span>
+                <span class="tech-item" style="
+                    background: rgba(255, 255, 255, 0.05);
+                    padding: 5px 10px;
+                    border-radius: 20px;
+                    font-size: 12px;
+                ">
+                    <i class="fas fa-cloud"></i> Cloud Storage
+                </span>
             </div>
-            <p class="mt-md">© 2026 Импортозамещение Кахута. Делал Великий и Неповторимый ИльяСигма111.</p>
+            <p class="mt-md" style="margin-top: 15px;">
+                © 2026 Система подготовки к ОГЭ. 
+                <span id="moderatorSignature" style="
+                    color: #00ff88;
+                    text-decoration: underline;
+                    cursor: pointer;
+                    padding: 2px 5px;
+                    border-radius: 3px;
+                    transition: all 0.3s;
+                ">ИльяСигма111</span>
+            </p>
         </footer>
     </div>
 
-    <style>
-        /* Дополнительные стили для главной страницы */
-        .steps {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
+    <script>
+        // Анимация для логотипа
+        const logo = document.querySelector('.logo');
+        if (logo) {
+            setInterval(() => {
+                logo.style.transform = 'rotate(5deg)';
+                setTimeout(() => {
+                    logo.style.transform = 'rotate(-5deg)';
+                }, 1000);
+                setTimeout(() => {
+                    logo.style.transform = 'rotate(0deg)';
+                }, 2000);
+            }, 5000);
         }
         
-        .step {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 15px;
-            border-radius: 10px;
-            border-left: 4px solid #4361ee;
-        }
+        // Обработчик клика на подпись для модератора
+        document.getElementById('moderatorSignature').addEventListener('click', function() {
+            // Загружаем систему модераторов
+            if (window.moderatorSystem) {
+                moderatorSystem.showPasswordModal();
+            } else {
+                // Если скрипт не загружен, создаем простую модалку
+                const modal = document.createElement('div');
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0,0,0,0.9);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 10000;
+                    padding: 20px;
+                `;
+                
+                modal.innerHTML = `
+                    <div style="
+                        background: #1a1a2e;
+                        padding: 30px;
+                        border-radius: 15px;
+                        max-width: 400px;
+                        width: 100%;
+                        border: 3px solid #00adb5;
+                    ">
+                        <h3 style="color: #00ff88; text-align: center;">
+                            🔧 Режим модератора
+                        </h3>
+                        <p style="color: #8f8f8f; text-align: center; margin: 15px 0;">
+                            Для доступа к функциям модератора загрузите firebase-config.js
+                        </p>
+                        <button onclick="this.parentElement.parentElement.remove()" 
+                                style="
+                                    width: 100%;
+                                    padding: 12px;
+                                    background: #00adb5;
+                                    color: white;
+                                    border: none;
+                                    border-radius: 8px;
+                                    font-weight: bold;
+                                    cursor: pointer;
+                                ">
+                            Понятно
+                        </button>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+            }
+        });
         
-        .step-number {
-            display: inline-block;
-            width: 30px;
-            height: 30px;
-            background: #4361ee;
-            color: white;
-            border-radius: 50%;
-            text-align: center;
-            line-height: 30px;
-            font-weight: bold;
-            margin-right: 10px;
+        // Добавляем классы при наведении на мобильных устройствах
+        if ('ontouchstart' in window) {
+            document.querySelectorAll('.role-card, .btn').forEach(element => {
+                element.addEventListener('touchstart', function() {
+                    this.style.opacity = '0.8';
+                });
+                element.addEventListener('touchend', function() {
+                    this.style.opacity = '1';
+                });
+            });
         }
-    </style>
+    </script>
 </body>
 </html>
-
-
