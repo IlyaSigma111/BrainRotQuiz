@@ -283,6 +283,15 @@
             background: rgba(255, 65, 108, 0.3);
         }
         
+        .moderator-btn.debug {
+            border-color: #7209b7;
+            color: #7209b7;
+        }
+        
+        .moderator-btn.debug:hover {
+            background: rgba(114, 9, 183, 0.3);
+        }
+        
         .moderator-link {
             color: #00ff88;
             text-decoration: underline;
@@ -607,6 +616,9 @@
                 <button class="moderator-btn" onclick="reloadPlayersList()">
                     🔄 Обновить список
                 </button>
+                <button class="moderator-btn debug" onclick="debugFirebase()">
+                    🔍 Проверить базу
+                </button>
                 <button class="moderator-btn logout" onclick="logoutModerator()">
                     🚪 Выйти
                 </button>
@@ -672,18 +684,26 @@
         function loadAllPlayers() {
             if (!window.db) {
                 console.error("Firebase не загружен");
+                showNotification("❌ Firebase не загружен!");
                 return;
             }
             
             // Очищаем предыдущего слушателя
             if (gamesListener) {
                 gamesListener();
+                gamesListener = null;
             }
+            
+            console.log("👂 Начинаю слушать изменения в играх...");
             
             // Слушаем изменения во всех играх
             gamesListener = db.ref('games').on('value', snapshot => {
                 const games = snapshot.val();
+                console.log("📡 Получены данные из Firebase:", games);
                 processAllPlayers(games);
+            }, error => {
+                console.error("❌ Ошибка слушателя Firebase:", error);
+                showNotification("❌ Ошибка подключения к базе");
             });
         }
         
@@ -712,6 +732,8 @@
                     });
                 }
             });
+            
+            console.log(`📊 Найдено игроков: ${allPlayers.length}`);
             
             // Обновляем UI
             updatePlayersListUI(allPlayers);
@@ -766,29 +788,57 @@
             playersList.innerHTML = html;
         }
         
-        // КИК ИГРОКА - ОСНОВНАЯ ФУНКЦИЯ
+        // КИК ИГРОКА - РАБОЧАЯ ФУНКЦИЯ
         function kickPlayer(gameId, playerName) {
             if (!gameId || !playerName) return;
             
             const gameCode = gameId.replace('game_', '');
             
             if (confirm(`Кикнуть игрока "${playerName}" из игры ${gameCode}?`)) {
+                // ШАГ 1: Удаляем игрока из базы Firebase
                 db.ref(`games/${gameId}/players/${playerName}`).remove()
                     .then(() => {
-                        console.log(`✅ Игрок ${playerName} кикнут из игры ${gameCode}`);
-                        showNotification(`👢 Игрок "${playerName}" кикнут из игры ${gameCode}`);
+                        console.log(`✅ Шаг 1: Игрок ${playerName} удален из Firebase`);
                         
-                        // Удаляем из локального массива
-                        allPlayers = allPlayers.filter(p => 
-                            !(p.gameId === gameId && p.playerName === playerName)
-                        );
+                        // ШАГ 2: Отправляем команду выхода на страницу ученика
+                        // Создаем специальное событие, которое ученик будет проверять
+                        const kickCommand = {
+                            command: "FORCE_KICK",
+                            playerName: playerName,
+                            gameId: gameId,
+                            timestamp: Date.now(),
+                            reason: "Кикнут модератором"
+                        };
                         
-                        // Обновляем UI
-                        updatePlayersListUI(allPlayers);
+                        db.ref(`kick_commands/${gameId}/${playerName}`).set(kickCommand)
+                            .then(() => {
+                                console.log(`✅ Шаг 2: Команда кика отправлена игроку ${playerName}`);
+                                
+                                // ШАГ 3: Через 2 секунды удаляем команду кика
+                                setTimeout(() => {
+                                    db.ref(`kick_commands/${gameId}/${playerName}`).remove();
+                                    console.log(`✅ Шаг 3: Команда кика очищена`);
+                                }, 2000);
+                                
+                                // ШАГ 4: Обновляем список игроков
+                                setTimeout(() => {
+                                    db.ref('games').once('value').then(snapshot => {
+                                        const games = snapshot.val();
+                                        console.log("🔄 Обновление после кика:", games);
+                                        processAllPlayers(games);
+                                    });
+                                }, 1000);
+                                
+                                showNotification(`👢 Игрок "${playerName}" кикнут из игры ${gameCode}`);
+                            })
+                            .catch(error => {
+                                console.error("❌ Ошибка отправки команды кика:", error);
+                                showNotification(`⚠️ Игрок удален, но команда не отправлена`);
+                            });
                     })
                     .catch(error => {
-                        console.error("❌ Ошибка кика игрока:", error);
-                        alert("Ошибка: " + error.message);
+                        console.error("❌ Ошибка удаления игрока:", error);
+                        showNotification(`❌ Ошибка: ${error.message}`);
                     });
             }
         }
@@ -797,8 +847,39 @@
         function reloadPlayersList() {
             db.ref('games').once('value').then(snapshot => {
                 const games = snapshot.val();
+                console.log("🔄 Принудительное обновление списка игроков:", games);
                 processAllPlayers(games);
                 showNotification("Список игроков обновлен");
+            }).catch(error => {
+                console.error("❌ Ошибка обновления списка:", error);
+                showNotification("❌ Ошибка обновления");
+            });
+        }
+        
+        // Проверить базу данных
+        function debugFirebase() {
+            db.ref('games').once('value').then(snapshot => {
+                const games = snapshot.val();
+                let message = `🔥 Статистика Firebase:\n`;
+                message += `Всего игр: ${games ? Object.keys(games).length : 0}\n\n`;
+                
+                if (games) {
+                    Object.entries(games).forEach(([gameId, gameData]) => {
+                        const playersCount = gameData.players ? Object.keys(gameData.players).length : 0;
+                        message += `🎮 ${gameId.replace('game_', '')}: ${playersCount} игроков (${gameData.status || '?'})\n`;
+                        
+                        if (gameData.players && playersCount > 0) {
+                            Object.keys(gameData.players).forEach(playerName => {
+                                message += `  👤 ${playerName}\n`;
+                            });
+                        }
+                    });
+                }
+                
+                alert(message);
+                console.log("Firebase данные:", games);
+            }).catch(error => {
+                alert("❌ Ошибка подключения к Firebase: " + error.message);
             });
         }
         
@@ -815,7 +896,12 @@
         
         // Утилиты
         function showNotification(message) {
+            // Удаляем старые уведомления
+            const oldNotifications = document.querySelectorAll('.notification');
+            oldNotifications.forEach(n => n.remove());
+            
             const notification = document.createElement('div');
+            notification.className = 'notification';
             notification.style.cssText = `
                 position: fixed;
                 top: 20px;
@@ -834,7 +920,11 @@
             
             setTimeout(() => {
                 notification.style.animation = 'slideOut 0.3s ease';
-                setTimeout(() => notification.remove(), 300);
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        document.body.removeChild(notification);
+                    }
+                }, 300);
             }, 3000);
         }
         
@@ -861,6 +951,34 @@
             if (event.key === 'Escape') {
                 closeModeratorPanel();
             }
+        });
+        
+        // Отладочная кнопка
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("🔧 Панель модератора загружена");
+            console.log("🔑 Пароль: JojoTop1");
+            
+            // Добавляем скрытую отладочную кнопку
+            const debugBtn = document.createElement('button');
+            debugBtn.textContent = '🐛';
+            debugBtn.title = 'Отладка';
+            debugBtn.style.cssText = `
+                position: fixed;
+                bottom: 10px;
+                left: 10px;
+                background: #7209b7;
+                color: white;
+                width: 30px;
+                height: 30px;
+                border: none;
+                border-radius: 50%;
+                font-size: 14px;
+                z-index: 9998;
+                opacity: 0.3;
+                cursor: pointer;
+            `;
+            debugBtn.onclick = debugFirebase;
+            document.body.appendChild(debugBtn);
         });
     </script>
 </body>
