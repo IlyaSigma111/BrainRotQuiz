@@ -1,6 +1,6 @@
 // ============================================
 // firebase-config.js
-// 16 КОРОТКИХ ВОПРОСОВ ОГЭ 2025
+// ФИКС: правильная проверка ответов + кнопка кика
 // ============================================
 
 // 🔥 КОНФИГУРАЦИЯ FIREBASE
@@ -312,7 +312,7 @@ window.QUIZ_DATA = {
 
 console.log(`✅ Загружено ${QUIZ_DATA.questions.length} коротких вопросов`);
 
-// 🛠️ ПОЛНЫЙ НАБОР ФУНКЦИЙ ДЛЯ РАБОТЫ С FIREBASE
+// 🛠️ ФУНКЦИИ ДЛЯ РАБОТЫ С FIREBASE (С ФИКСОМ ПРОВЕРКИ ОТВЕТОВ)
 window.firebaseAPI = {
     // Создать новую игру
     createGame(gameData) {
@@ -359,7 +359,6 @@ window.firebaseAPI = {
         
         if (questionId) {
             updates.currentQuestion = questionId;
-            // Очищаем старые ответы при смене вопроса
             updates[`answers/${questionId}`] = null;
         }
         
@@ -378,7 +377,7 @@ window.firebaseAPI = {
         });
     },
 
-    // Удалить игрока
+    // Удалить игрока (КИК)
     removePlayer(gameId, playerName) {
         return db.ref(`games/${gameId}/players/${playerName}`).remove();
     },
@@ -391,12 +390,35 @@ window.firebaseAPI = {
         });
     },
 
-    // Отправить ответ
+    // Отправить ответ (С ФИКСОМ ПРАВИЛЬНОСТИ)
     submitAnswer(gameId, questionId, playerName, answerData) {
-        const answerRef = db.ref(`games/${gameId}/answers/${questionId}/${playerName}`);
-        return answerRef.set({
+        const question = QUIZ_DATA.questions.find(q => q.id == questionId);
+        if (!question) {
+            console.error("Вопрос не найден:", questionId);
+            return Promise.reject("Вопрос не найден");
+        }
+        
+        // ПРАВИЛЬНАЯ ПРОВЕРКА ОТВЕТА
+        const isCorrect = answerData.answerIndex === question.correct;
+        const points = isCorrect ? question.points : 0;
+        
+        // Обновляем данные ответа
+        const fixedAnswerData = {
             ...answerData,
+            isCorrect: isCorrect,
+            points: points,
             timestamp: Date.now()
+        };
+        
+        const answerRef = db.ref(`games/${gameId}/answers/${questionId}/${playerName}`);
+        
+        // Отправляем ответ
+        return answerRef.set(fixedAnswerData).then(() => {
+            // Если ответ правильный, обновляем счёт игрока
+            if (isCorrect) {
+                return this.updatePlayerScore(gameId, playerName, points);
+            }
+            return Promise.resolve();
         });
     },
 
@@ -413,7 +435,7 @@ window.firebaseAPI = {
         return db.ref(`games/${gameId}/answers/${questionId}`).off();
     },
 
-    // Рассчитать статистику
+    // Рассчитать статистику (С ФИКСОМ)
     calculateStats(answers, questionId) {
         const question = QUIZ_DATA.questions.find(q => q.id == questionId);
         if (!question) return null;
@@ -424,22 +446,41 @@ window.firebaseAPI = {
             byOption: question.options.map(() => 0),
             averageTime: 0,
             times: [],
-            players: {}
+            players: {},
+            detailedAnswers: []
         };
         
         Object.entries(answers).forEach(([playerName, answer]) => {
             stats.total++;
             stats.players[playerName] = answer;
             
+            // ПРОВЕРЯЕМ ПРАВИЛЬНОСТЬ
+            const isCorrect = answer.answerIndex === question.correct;
+            
+            // Исправляем если неправильно записано в базе
+            if (answer.isCorrect !== isCorrect) {
+                console.log(`Исправляем правильность для ${playerName}: было ${answer.isCorrect}, должно быть ${isCorrect}`);
+                answer.isCorrect = isCorrect;
+            }
+            
             if (answer.answerIndex >= 0) {
                 stats.byOption[answer.answerIndex]++;
-                if (answer.isCorrect) {
+                if (isCorrect) {
                     stats.correct++;
                 }
             }
+            
             if (answer.timeSpent) {
                 stats.times.push(answer.timeSpent);
             }
+            
+            stats.detailedAnswers.push({
+                player: playerName,
+                answerIndex: answer.answerIndex,
+                isCorrect: isCorrect,
+                timeSpent: answer.timeSpent,
+                timestamp: answer.timestamp
+            });
         });
         
         if (stats.times.length > 0) {
@@ -471,37 +512,381 @@ window.firebaseAPI = {
             status: "ended",
             ended: Date.now()
         });
-    },
-
-    // Очистить старые игры (админ)
-    cleanupOldGames(hours = 24) {
-        const cutoff = Date.now() - (hours * 60 * 60 * 1000);
-        return db.ref('games').once('value').then((snapshot) => {
-            const updates = {};
-            snapshot.forEach((child) => {
-                const game = child.val();
-                if (game.created && game.created < cutoff) {
-                    updates[child.key] = null;
-                }
-            });
-            return db.ref('games').update(updates);
-        });
     }
 };
 
-// 🎯 ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ РАБОТЫ С ВИКТОРИНОЙ
+// 🎯 ИНСТРУМЕНТЫ УЧИТЕЛЯ С КНОПКОЙ КИКА
+window.teacherTools = {
+    // Показать детальную статистику по вопросу
+    showQuestionStats(gameId, questionId) {
+        firebaseAPI.getQuestionStats(gameId, questionId, (stats) => {
+            if (!stats) {
+                console.log("Нет статистики по этому вопросу");
+                return;
+            }
+            
+            const question = QUIZ_DATA.questions.find(q => q.id == questionId);
+            console.log("📊 ДЕТАЛЬНАЯ СТАТИСТИКА:");
+            console.log(`Вопрос: ${question.text.substring(0, 50)}...`);
+            console.log(`Всего ответов: ${stats.total}`);
+            console.log(`Правильных: ${stats.correct} (${Math.round((stats.correct/stats.total)*100)}%)`);
+            console.log("Распределение по вариантам:");
+            
+            stats.byOption.forEach((count, index) => {
+                const percentage = Math.round((count/stats.total)*100);
+                const isCorrect = index === question.correct;
+                console.log(`${index+1}) ${question.options[index].substring(0,30)}...: ${count} (${percentage}%) ${isCorrect ? '✓' : '✗'}`);
+            });
+            
+            console.log(`Среднее время: ${stats.averageTime} сек.`);
+            
+            // Показываем ответы конкретных игроков
+            console.log("Ответы игроков:");
+            stats.detailedAnswers.forEach(answer => {
+                console.log(`${answer.player}: ${answer.answerIndex >= 0 ? 'вариант ' + (answer.answerIndex + 1) : 'не ответил'} - ${answer.isCorrect ? 'правильно ✓' : 'неправильно ✗'} (${answer.timeSpent} сек.)`);
+            });
+        });
+    },
+    
+    // Создать кнопку кика игрока
+    createKickButton(gameId, playerName) {
+        const kickBtn = document.createElement('button');
+        kickBtn.className = 'kick-btn';
+        kickBtn.innerHTML = '❌';
+        kickBtn.title = 'Исключить игрока';
+        kickBtn.onclick = (e) => {
+            e.stopPropagation();
+            this.kickPlayer(gameId, playerName);
+        };
+        return kickBtn;
+    },
+    
+    // Кик игрока с подтверждением
+    kickPlayer(gameId, playerName) {
+        if (confirm(`Точно исключить игрока "${playerName}" из игры?\n\nИгрок не сможет продолжить участие.`)) {
+            firebaseAPI.removePlayer(gameId, playerName)
+                .then(() => {
+                    console.log(`✅ Игрок ${playerName} исключён`);
+                    alert(`Игрок ${playerName} исключён из игры`);
+                })
+                .catch(error => {
+                    console.error('❌ Ошибка при исключении игрока:', error);
+                    alert('Не удалось исключить игрока');
+                });
+        }
+    },
+    
+    // Отобразить таблицу лидеров с кнопками кика
+    renderLeaderboardWithControls(gameId, leaderboard, container, isTeacher = false) {
+        container.innerHTML = '';
+        
+        leaderboard.forEach((player, index) => {
+            const playerDiv = document.createElement('div');
+            playerDiv.className = 'leaderboard-player';
+            playerDiv.dataset.player = player.name;
+            
+            playerDiv.innerHTML = `
+                <div class="player-rank">${index + 1}</div>
+                <div class="player-name">${player.name}</div>
+                <div class="player-score">${player.score} баллов</div>
+                <div class="player-answers">${Object.keys(player.answers || {}).length} ответов</div>
+            `;
+            
+            // Добавляем кнопку кика только учителю
+            if (isTeacher) {
+                const kickBtn = this.createKickButton(gameId, player.name);
+                playerDiv.querySelector('.player-answers').after(kickBtn);
+            }
+            
+            container.appendChild(playerDiv);
+        });
+    },
+    
+    // Показать панель управления игрой
+    showGameControls(gameId) {
+        // Удаляем старую панель если есть
+        const oldPanel = document.querySelector('.teacher-controls');
+        if (oldPanel) oldPanel.remove();
+        
+        const controlsDiv = document.createElement('div');
+        controlsDiv.className = 'teacher-controls';
+        controlsDiv.innerHTML = `
+            <h3>👨‍🏫 Панель учителя</h3>
+            <button onclick="teacherTools.showCurrentStats('${gameId}')">📊 Текущая статистика</button>
+            <button onclick="teacherTools.pauseGame('${gameId}')">⏸️ Пауза</button>
+            <button onclick="teacherTools.nextQuestion('${gameId}')">➡️ Следующий вопрос</button>
+            <button onclick="teacherTools.endGameEarly('${gameId}')" style="background:#f44336">🏁 Завершить досрочно</button>
+            <div id="teacher-stats"></div>
+        `;
+        
+        document.body.appendChild(controlsDiv);
+        this.injectTeacherStyles();
+    },
+    
+    // Показать текущую статистику
+    showCurrentStats(gameId) {
+        firebaseAPI.getLeaderboard(gameId, (leaderboard) => {
+            const statsDiv = document.getElementById('teacher-stats');
+            const totalAnswers = leaderboard.reduce((sum, p) => sum + Object.keys(p.answers || {}).length, 0);
+            const avgScore = leaderboard.length > 0 ? Math.round(leaderboard.reduce((sum, p) => sum + p.score, 0) / leaderboard.length) : 0;
+            
+            statsDiv.innerHTML = `
+                <div class="stats-summary">
+                    <h4>📈 Сводка:</h4>
+                    <p>👥 Игроков: <strong>${leaderboard.length}</strong></p>
+                    <p>🎯 Средний балл: <strong>${avgScore}</strong></p>
+                    <p>📝 Всего ответов: <strong>${totalAnswers}</strong></p>
+                    <p>🥇 Лучший: <strong>${leaderboard[0] ? leaderboard[0].name + ' (' + leaderboard[0].score + ' баллов)' : 'нет'}</strong></p>
+                </div>
+            `;
+        });
+    },
+    
+    // Поставить игру на паузу
+    pauseGame(gameId) {
+        firebaseAPI.updateGameStatus(gameId, 'paused')
+            .then(() => alert('⏸️ Игра на паузе'))
+            .catch(err => console.error('❌ Ошибка паузы:', err));
+    },
+    
+    // Перейти к следующему вопросу
+    nextQuestion(gameId) {
+        db.ref('games/' + gameId).once('value').then((snapshot) => {
+            const game = snapshot.val();
+            const currentId = game.currentQuestion || 0;
+            const nextId = currentId + 1;
+            
+            if (nextId <= QUIZ_DATA.questions.length) {
+                firebaseAPI.updateGameStatus(gameId, 'question', nextId)
+                    .then(() => alert(`➡️ Переход к вопросу ${nextId}`));
+            } else {
+                alert('🏁 Это был последний вопрос!');
+            }
+        });
+    },
+    
+    // Досрочно завершить игру
+    endGameEarly(gameId) {
+        if (confirm('🏁 Точно завершить игру досрочно?\n\nВсе игроки увидят результаты сейчас.')) {
+            firebaseAPI.endGame(gameId)
+                .then(() => alert('Игра завершена!'))
+                .catch(err => console.error('❌ Ошибка завершения:', err));
+        }
+    },
+    
+    // Внедрить стили для панели учителя
+    injectTeacherStyles() {
+        if (document.querySelector('#teacher-styles')) return;
+        
+        const styles = `
+        <style id="teacher-styles">
+        .teacher-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 1000;
+            max-width: 300px;
+            border: 2px solid #4CAF50;
+        }
+        .teacher-controls h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        .teacher-controls button {
+            display: block;
+            width: 100%;
+            margin: 5px 0;
+            padding: 10px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .teacher-controls button:hover {
+            background: #45a049;
+            transform: translateY(-1px);
+        }
+        .kick-btn {
+            background: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            margin-left: 10px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .kick-btn:hover {
+            background: #cc0000;
+            transform: scale(1.1);
+        }
+        .leaderboard-player {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            background: #f5f5f5;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+        .leaderboard-player:hover {
+            background: #e8f5e9;
+        }
+        .player-rank {
+            font-weight: bold;
+            width: 30px;
+            color: #666;
+        }
+        .player-name {
+            flex: 1;
+            font-weight: bold;
+        }
+        .player-score {
+            width: 80px;
+            text-align: right;
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        .player-answers {
+            width: 80px;
+            text-align: right;
+            color: #666;
+            font-size: 12px;
+        }
+        .stats-summary {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #4CAF50;
+        }
+        .stats-summary h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        .stats-summary p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        </style>
+        `;
+        
+        document.head.insertAdjacentHTML('beforeend', styles);
+    }
+};
+
+// 📊 ФУНКЦИЯ ДЛЯ ОТОБРАЖЕНИЯ СТАТИСТИКИ В РЕАЛЬНОМ ВРЕМЕНИ
+window.realTimeStats = {
+    // Создать виджет статистики
+    createStatsWidget(gameId, questionId, containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        
+        container.innerHTML = `
+            <div class="stats-widget">
+                <h4>📈 Статистика ответов</h4>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-label">Всего ответили</div>
+                        <div class="stat-value" id="total-answers">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Правильно</div>
+                        <div class="stat-value correct" id="correct-answers">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Неправильно</div>
+                        <div class="stat-value wrong" id="wrong-answers">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Среднее время</div>
+                        <div class="stat-value" id="avg-time">0с</div>
+                    </div>
+                </div>
+                <div class="options-stats" id="options-stats"></div>
+                <div class="player-list" id="player-answers-list"></div>
+            </div>
+        `;
+        
+        // Подписываемся на обновления статистики
+        firebaseAPI.getQuestionStats(gameId, questionId, (stats) => {
+            this.updateStatsWidget(stats);
+        });
+    },
+    
+    // Обновить виджет статистики
+    updateStatsWidget(stats) {
+        if (!stats) return;
+        
+        document.getElementById('total-answers').textContent = stats.total;
+        document.getElementById('correct-answers').textContent = stats.correct;
+        document.getElementById('wrong-answers').textContent = stats.total - stats.correct;
+        document.getElementById('avg-time').textContent = stats.averageTime + 'с';
+        
+        // Отображаем статистику по вариантам
+        const question = QUIZ_DATA.questions.find(q => q.id == stats.questionId);
+        const optionsContainer = document.getElementById('options-stats');
+        if (optionsContainer && question) {
+            optionsContainer.innerHTML = '<h5>Ответы по вариантам:</h5>';
+            
+            question.options.forEach((option, index) => {
+                const count = stats.byOption[index] || 0;
+                const percentage = stats.total > 0 ? Math.round((count/stats.total)*100) : 0;
+                const isCorrect = index === question.correct;
+                
+                const optionDiv = document.createElement('div');
+                optionDiv.className = `option-stat ${isCorrect ? 'correct-option' : ''}`;
+                optionDiv.innerHTML = `
+                    <div class="option-text">${index + 1}. ${option.substring(0, 40)}...</div>
+                    <div class="option-bar">
+                        <div class="bar-fill" style="width: ${percentage}%"></div>
+                    </div>
+                    <div class="option-count">${count} (${percentage}%) ${isCorrect ? '✓' : ''}</div>
+                `;
+                
+                optionsContainer.appendChild(optionDiv);
+            });
+        }
+        
+        // Отображаем ответы игроков
+        const playerList = document.getElementById('player-answers-list');
+        if (playerList && stats.detailedAnswers) {
+            playerList.innerHTML = '<h5>Ответы игроков:</h5>';
+            
+            stats.detailedAnswers.forEach(answer => {
+                const playerDiv = document.createElement('div');
+                playerDiv.className = `player-answer ${answer.isCorrect ? 'correct' : 'wrong'}`;
+                playerDiv.innerHTML = `
+                    <span class="player-name">${answer.player}</span>
+                    <span class="player-choice">Вариант ${answer.answerIndex + 1}</span>
+                    <span class="player-time">${answer.timeSpent}с</span>
+                    <span class="player-status">${answer.isCorrect ? '✓' : '✗'}</span>
+                `;
+                playerList.appendChild(playerDiv);
+            });
+        }
+    }
+};
+
+// 🎮 ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
 window.quizUtils = {
     // Получить вопрос по ID
     getQuestionById(id) {
         return QUIZ_DATA.questions.find(q => q.id == id);
     },
-
-    // Получить случайный вопрос
-    getRandomQuestion(excludeIds = []) {
-        const available = QUIZ_DATA.questions.filter(q => !excludeIds.includes(q.id));
-        return available[Math.floor(Math.random() * available.length)];
-    },
-
+    
     // Проверить ответ
     checkAnswer(questionId, answerIndex) {
         const question = this.getQuestionById(questionId);
@@ -515,80 +900,17 @@ window.quizUtils = {
             explanation: question.explanation
         };
     },
-
-    // Рассчитать итоговый результат
-    calculateFinalScore(answers) {
-        let totalScore = 0;
-        let correctCount = 0;
-        
-        Object.values(answers).forEach(answer => {
-            if (answer.isCorrect) {
-                totalScore += answer.points || 1;
-                correctCount++;
-            }
-        });
-        
-        return {
-            score: totalScore,
-            correct: correctCount,
-            total: Object.keys(answers).length,
-            percentage: Math.round((correctCount / Object.keys(answers).length) * 100) || 0
-        };
+    
+    // Получить роль текущего пользователя
+    getCurrentUserRole() {
+        return localStorage.getItem('userRole') || 'student';
     },
-
-    // Получить все вопросы по типу
-    getQuestionsByType(type) {
-        return QUIZ_DATA.questions.filter(q => q.type === type);
-    },
-
-    // Получить вопросы по сложности
-    getQuestionsByDifficulty(difficulty) {
-        return QUIZ_DATA.questions.filter(q => q.difficulty === difficulty);
-    },
-
-    // Генерация ID для новой игры
-    generateGameCode() {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        let code = '';
-        for (let i = 0; i < 6; i++) {
-            code += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return code;
+    
+    // Установить роль пользователя
+    setUserRole(role) {
+        localStorage.setItem('userRole', role);
+        console.log(`Роль установлена: ${role}`);
     }
 };
 
-// 📊 СТАТИСТИКА И АНАЛИТИКА
-window.quizAnalytics = {
-    // Запись события
-    logEvent(eventName, data = {}) {
-        if (!window.db) return;
-        
-        const eventRef = db.ref('analytics/events').push();
-        return eventRef.set({
-            name: eventName,
-            data: data,
-            timestamp: Date.now(),
-            userAgent: navigator.userAgent
-        });
-    },
-
-    // Запись результата игры
-    logGameResult(gameId, result) {
-        return this.logEvent('game_completed', {
-            gameId: gameId,
-            quizId: QUIZ_DATA.id,
-            result: result
-        });
-    },
-
-    // Статистика по вопросам
-    getQuestionAnalytics(callback) {
-        if (!window.db) return;
-        
-        return db.ref('analytics/question_stats').on('value', (snapshot) => {
-            callback(snapshot.val() || {});
-        });
-    }
-};
-
-console.log("✅ Все функции загружены: 16 вопросов + Firebase API + утилиты");
+console.log("✅ Файл загружен: 16 вопросов + фикс проверки ответов + кнопка кика");
