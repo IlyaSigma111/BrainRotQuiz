@@ -7,6 +7,688 @@
     <link rel="stylesheet" href="style.css">
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        /* ОСНОВНЫЕ СТИЛИ УЧИТЕЛЯ */
+        .teacher-page {
+            background: #1a1a2e;
+            color: white;
+            min-height: 100vh;
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+        }
+
+        .main-interface {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .teacher-header {
+            background: linear-gradient(90deg, #16213e, #0f3460);
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #00adb5;
+            box-shadow: 0 3px 15px rgba(0, 0, 0, 0.3);
+            height: 70px;
+            min-height: 70px;
+            flex-shrink: 0;
+        }
+
+        .header-left h1 {
+            margin: 0;
+            font-size: 20px;
+            color: #00adb5;
+        }
+
+        .header-left p {
+            margin: 3px 0 0 0;
+            color: #8f8f8f;
+            font-size: 12px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .game-code-box {
+            background: rgba(0, 173, 181, 0.1);
+            border: 2px solid #00adb5;
+            border-radius: 8px;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .code-label {
+            font-size: 11px;
+            color: #8f8f8f;
+        }
+
+        .code-display {
+            font-family: 'Courier New', monospace;
+            font-size: 22px;
+            font-weight: bold;
+            color: #00ff88;
+            letter-spacing: 1px;
+            min-width: 100px;
+            text-align: center;
+        }
+
+        .copy-btn {
+            background: #00adb5;
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .copy-btn:hover {
+            background: #00ff88;
+            transform: scale(1.05);
+        }
+
+        .home-btn {
+            background: #393e46;
+            color: white;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            font-size: 18px;
+            transition: all 0.3s;
+        }
+
+        .home-btn:hover {
+            background: #00adb5;
+            transform: rotate(15deg);
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+            padding: 15px;
+            gap: 15px;
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        .left-column, .right-column {
+            width: 50%;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            min-height: 0;
+        }
+
+        .section {
+            background: #222831;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid #393e46;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+            flex-shrink: 0;
+        }
+
+        .section h3 {
+            color: #00adb5;
+            margin-top: 0;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .create-btn {
+            background: linear-gradient(135deg, #00b4d8, #0077b6);
+            color: white;
+        }
+
+        .create-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 180, 216, 0.3);
+        }
+
+        .question-btn {
+            background: linear-gradient(135deg, #00ff88, #00b4d8);
+            color: white;
+        }
+
+        .stats-btn {
+            background: linear-gradient(135deg, #ff9e00, #ff6d00);
+            color: white;
+        }
+
+        .end-btn {
+            background: linear-gradient(135deg, #ff416c, #ff4b2b);
+            color: white;
+        }
+
+        .reset-btn {
+            background: linear-gradient(135deg, #8a2be2, #4b0082);
+            color: white;
+        }
+
+        .sync-btn {
+            background: linear-gradient(135deg, #7209b7, #3a0ca3);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.1);
+        }
+
+        .control-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .current-info {
+            background: rgba(0, 173, 181, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 15px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            color: #00ff88;
+        }
+
+        /* ЛОББИ ИГРОКОВ */
+        .lobby-panel {
+            background: #222831;
+            border-radius: 12px;
+            padding: 15px;
+            flex: 1;
+            border: 1px solid #393e46;
+            overflow-y: auto;
+            min-height: 0;
+        }
+
+        .players-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .player-card {
+            background: rgba(0, 173, 181, 0.1);
+            border: 2px solid #00adb5;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .player-card:hover {
+            transform: translateY(-2px);
+            border-color: #00ff88;
+            background: rgba(0, 255, 136, 0.1);
+        }
+
+        .player-avatar {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #00adb5, #00ff88);
+            border-radius: 50%;
+            margin: 0 auto 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .player-name {
+            font-weight: bold;
+            color: white;
+            font-size: 14px;
+            margin-bottom: 3px;
+        }
+
+        .player-score {
+            color: #00ff88;
+            font-size: 12px;
+            margin-bottom: 3px;
+        }
+
+        .player-device {
+            color: #8f8f8f;
+            font-size: 11px;
+        }
+
+        .empty-lobby {
+            text-align: center;
+            padding: 30px 15px;
+            color: #8f8f8f;
+        }
+
+        .empty-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+            opacity: 0.5;
+        }
+
+        /* СТАТИСТИКА */
+        .stats-panel {
+            background: #222831;
+            border-radius: 12px;
+            padding: 15px;
+            flex: 1;
+            border: 1px solid #393e46;
+            overflow-y: auto;
+            min-height: 0;
+        }
+
+        .stats-content {
+            margin-top: 10px;
+        }
+
+        .stats-item {
+            background: rgba(0, 173, 181, 0.05);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-left: 3px solid #00adb5;
+        }
+
+        .stats-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #00ff88;
+            margin-bottom: 3px;
+        }
+
+        .stats-label {
+            color: #8f8f8f;
+            font-size: 12px;
+        }
+
+        .empty-stats {
+            text-align: center;
+            padding: 30px 15px;
+            color: #8f8f8f;
+        }
+
+        .stats-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+            opacity: 0.5;
+        }
+
+        /* СПИСОК ВОПРОСОВ */
+        .questions-panel {
+            background: #222831;
+            border-radius: 12px;
+            padding: 15px;
+            flex: 1;
+            border: 1px solid #393e46;
+            overflow-y: auto;
+            min-height: 0;
+        }
+
+        .questions-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .question-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .question-item:hover {
+            background: rgba(0, 173, 181, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .question-item.active {
+            border-color: #ff416c;
+            background: rgba(255, 65, 108, 0.1);
+        }
+
+        .question-item.completed {
+            border-color: #00ff88;
+            background: rgba(0, 255, 136, 0.1);
+        }
+
+        .question-item.upcoming {
+            border-color: #00adb5;
+            background: rgba(0, 173, 181, 0.1);
+        }
+
+        .question-number {
+            width: 28px;
+            height: 28px;
+            background: #00adb5;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .question-type {
+            display: block;
+            font-size: 11px;
+            color: #00ff88;
+            margin-top: 2px;
+        }
+
+        /* РЕЖИМ ПРЕЗЕНТАЦИИ - УМЕНЬШЕННЫЙ */
+        .presentation-mode {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #0a0a1a;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .presentation-header {
+            background: linear-gradient(90deg, #00adb5, #0077b6);
+            padding: 8px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #00ff88;
+            height: 50px;
+            min-height: 50px;
+            max-height: 50px;
+            flex-shrink: 0;
+        }
+
+        .presentation-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .presentation-label {
+            font-size: 13px;
+            color: white;
+            font-weight: bold;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 4px 10px;
+            border-radius: 6px;
+        }
+
+        .question-counter {
+            font-size: 14px;
+            color: white;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 4px 12px;
+            border-radius: 6px;
+        }
+
+        .presentation-timer {
+            text-align: center;
+        }
+
+        .timer-label {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 2px;
+        }
+
+        .big-timer {
+            font-size: 30px;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            color: #00ff88;
+            text-shadow: 0 0 8px rgba(0, 255, 136, 0.4);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.02); }
+        }
+
+        .presentation-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+            overflow: auto;
+            min-height: 0;
+        }
+
+        .presentation-question {
+            max-width: 900px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(8px);
+            border-radius: 12px;
+            padding: 25px;
+            border: 2px solid #00adb5;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+            max-height: 75vh;
+            overflow-y: auto;
+        }
+
+        .presentation-question.compact {
+            padding: 20px;
+        }
+
+        .presentation-question.compact h2 {
+            font-size: 22px;
+            margin-bottom: 15px;
+        }
+
+        .presentation-question h2 {
+            font-size: 26px;
+            color: white;
+            text-align: center;
+            line-height: 1.3;
+            margin: 0 0 20px 0;
+            word-wrap: break-word;
+        }
+
+        .presentation-controls {
+            padding: 10px 15px;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            height: 60px;
+            min-height: 60px;
+            max-height: 60px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .exit-btn, .answer-btn, .compact-btn {
+            background: linear-gradient(135deg, #ff416c, #ff4b2b);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-width: 120px;
+        }
+
+        .answer-btn {
+            background: linear-gradient(135deg, #00ff88, #00b4d8);
+        }
+
+        .compact-btn {
+            background: linear-gradient(135deg, #7209b7, #3a0ca3);
+        }
+
+        .exit-btn:hover, .answer-btn:hover, .compact-btn:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.1);
+        }
+
+        /* СТИЛИ ДЛЯ КОМПАКТНОЙ СТАТИСТИКИ */
+        #liveStats {
+            margin-top: 15px;
+            padding: 12px;
+            background: rgba(0, 173, 181, 0.15);
+            border-radius: 8px;
+            border: 1px solid #00adb5;
+            font-size: 13px;
+        }
+
+        .presentation-question.compact #liveStats {
+            padding: 8px;
+            font-size: 12px;
+        }
+
+        /* АДАПТИВНОСТЬ */
+        @media (max-width: 1200px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .left-column, .right-column {
+                width: 100%;
+            }
+            
+            .presentation-question h2 {
+                font-size: 22px;
+            }
+            
+            .big-timer {
+                font-size: 24px;
+            }
+            
+            .questions-list {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            }
+            
+            .players-list {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .teacher-header {
+                flex-direction: column;
+                height: auto;
+                padding: 10px;
+                gap: 10px;
+                text-align: center;
+            }
+            
+            .header-right {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .control-buttons {
+                grid-template-columns: 1fr;
+            }
+            
+            .presentation-question h2 {
+                font-size: 20px;
+                padding: 0 10px;
+            }
+            
+            .big-timer {
+                font-size: 20px;
+            }
+            
+            .presentation-controls {
+                flex-direction: column;
+                height: auto;
+                padding: 10px;
+                gap: 8px;
+            }
+            
+            .exit-btn, .answer-btn, .compact-btn {
+                width: 100%;
+                min-width: auto;
+                padding: 8px;
+                font-size: 12px;
+            }
+            
+            .presentation-question {
+                padding: 15px;
+                margin: 0 10px;
+            }
+        }
+
+        /* АНИМАЦИИ УВЕДОМЛЕНИЙ */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #00ff88;
+            color: #000;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            z-index: 10000;
+            animation: slideIn 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            font-size: 14px;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+    </style>
 </head>
 <body class="teacher-page">
     <!-- ОСНОВНОЙ ИНТЕРФЕЙС -->
@@ -14,7 +696,7 @@
         <header class="teacher-header">
             <div class="header-left">
                 <h1>👨‍🏫 ПАНЕЛЬ УЧИТЕЛЯ</h1>
-                <p>Управление игрой на смарт-доске</p>
+                <p>ОГЭ Русский язык - Управление игрой</p>
             </div>
             <div class="header-right">
                 <div class="game-code-box">
@@ -34,7 +716,7 @@
                     
                     <div id="startSection" class="section">
                         <h3>📦 Создать новую игру</h3>
-                        <p>Начните новую игровую сессию для вашего класса</p>
+                        <p>Начните игровую сессию для класса</p>
                         <button onclick="startNewGame()" class="btn create-btn">
                             🚀 СОЗДАТЬ ИГРУ
                         </button>
@@ -47,13 +729,16 @@
                                 ▶️ ЗАПУСТИТЬ ВОПРОС
                             </button>
                             <button onclick="showStats()" class="btn stats-btn">
-                                📊 ПОКАЗАТЬ СТАТИСТИКУ
+                                📊 СТАТИСТИКА
                             </button>
                             <button onclick="endQuestion()" class="btn end-btn">
-                                ⏹️ ЗАВЕРШИТЬ ВОПРОС
+                                ⏹️ ЗАВЕРШИТЬ
                             </button>
                             <button onclick="resetGame()" class="btn reset-btn">
-                                🔄 НАЧАТЬ ЗАНОВО
+                                🔄 СБРОС
+                            </button>
+                            <button onclick="forceSync()" class="btn sync-btn">
+                                🔄 СИНХРОНИЗАЦИЯ
                             </button>
                         </div>
                         
@@ -107,7 +792,7 @@
             </div>
             <div class="presentation-timer">
                 <div class="timer-label">ОСТАЛОСЬ:</div>
-                <div id="presentationTimer" class="big-timer">30</div>
+                <div id="presentationTimer" class="big-timer">25</div>
             </div>
         </div>
 
@@ -119,7 +804,10 @@
 
         <div class="presentation-controls">
             <button onclick="exitPresentation()" class="btn exit-btn">
-                ↩️ ВЕРНУТЬСЯ К УПРАВЛЕНИЮ
+                ↩️ УПРАВЛЕНИЕ
+            </button>
+            <button onclick="toggleCompactMode()" class="btn compact-btn" id="compactBtn">
+                📱 КОМПАКТНО
             </button>
             <button onclick="showAnswer()" class="btn answer-btn">
                 ✅ ПОКАЗАТЬ ОТВЕТ
@@ -128,530 +816,571 @@
     </div>
 
     <script src="firebase-config.js"></script>
-    <script src="teacher.js"></script>
-
-    <style>
-        /* ОСНОВНЫЕ СТИЛИ УЧИТЕЛЯ */
-        .teacher-page {
-            background: #1a1a2e;
-            color: white;
-            min-height: 100vh;
-            font-family: 'Arial', sans-serif;
-        }
-
-        .main-interface {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-        }
-
-        .teacher-header {
-            background: linear-gradient(90deg, #16213e, #0f3460);
-            padding: 15px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 3px solid #00adb5;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
-        }
-
-        .header-left h1 {
-            margin: 0;
-            font-size: 24px;
-            color: #00adb5;
-        }
-
-        .header-left p {
-            margin: 5px 0 0 0;
-            color: #8f8f8f;
-            font-size: 14px;
-        }
-
-        .header-right {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .game-code-box {
-            background: rgba(0, 173, 181, 0.1);
-            border: 2px solid #00adb5;
-            border-radius: 10px;
-            padding: 10px 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .code-label {
-            font-size: 12px;
-            color: #8f8f8f;
-        }
-
-        .code-display {
-            font-family: 'Courier New', monospace;
-            font-size: 28px;
-            font-weight: bold;
-            color: #00ff88;
-            letter-spacing: 2px;
-            min-width: 120px;
-            text-align: center;
-        }
-
-        .copy-btn {
-            background: #00adb5;
-            border: none;
-            color: white;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 18px;
-            transition: all 0.3s;
-        }
-
-        .copy-btn:hover {
-            background: #00ff88;
-            transform: scale(1.1);
-        }
-
-        .home-btn {
-            background: #393e46;
-            color: white;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-decoration: none;
-            font-size: 20px;
-            transition: all 0.3s;
-        }
-
-        .home-btn:hover {
-            background: #00adb5;
-            transform: rotate(360deg);
-        }
-
-        .main-content {
-            display: flex;
-            flex: 1;
-            padding: 20px;
-            gap: 20px;
-            overflow: hidden;
-        }
-
-        .left-column, .right-column {
-            width: 50%;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .section {
-            background: #222831;
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
-            border: 1px solid #393e46;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-        }
-
-        .section h3 {
-            color: #00adb5;
-            margin-top: 0;
-            font-size: 18px;
-        }
-
-        .btn {
-            display: block;
-            width: 100%;
-            padding: 15px;
-            margin: 10px 0;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-align: center;
-        }
-
-        .create-btn {
-            background: linear-gradient(135deg, #00b4d8, #0077b6);
-            color: white;
-        }
-
-        .create-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 20px rgba(0, 180, 216, 0.3);
-        }
-
-        .question-btn {
-            background: linear-gradient(135deg, #00ff88, #00b4d8);
-            color: white;
-        }
-
-        .stats-btn {
-            background: linear-gradient(135deg, #ff9e00, #ff6d00);
-            color: white;
-        }
-
-        .end-btn {
-            background: linear-gradient(135deg, #ff416c, #ff4b2b);
-            color: white;
-        }
-
-        .reset-btn {
-            background: linear-gradient(135deg, #8a2be2, #4b0082);
-            color: white;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            filter: brightness(1.1);
-        }
-
-        .control-buttons {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-
-        .current-info {
-            background: rgba(0, 173, 181, 0.1);
-            border-radius: 10px;
-            padding: 15px;
-            margin-top: 20px;
-            display: flex;
-            justify-content: space-between;
-            font-size: 16px;
-            color: #00ff88;
-        }
-
-        /* ЛОББИ ИГРОКОВ */
-        .lobby-panel {
-            background: #222831;
-            border-radius: 15px;
-            padding: 20px;
-            flex: 1;
-            border: 1px solid #393e46;
-            overflow-y: auto;
-        }
-
-        .players-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 10px;
-            margin-top: 15px;
-        }
-
-        .player-card {
-            background: rgba(0, 173, 181, 0.1);
-            border: 2px solid #00adb5;
-            border-radius: 10px;
-            padding: 15px;
-            text-align: center;
-            transition: all 0.3s;
-        }
-
-        .player-card:hover {
-            transform: translateY(-3px);
-            border-color: #00ff88;
-            background: rgba(0, 255, 136, 0.1);
-        }
-
-        .player-avatar {
-            width: 50px;
-            height: 50px;
-            background: linear-gradient(135deg, #00adb5, #00ff88);
-            border-radius: 50%;
-            margin: 0 auto 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            font-weight: bold;
-            color: white;
-        }
-
-        .player-name {
-            font-weight: bold;
-            color: white;
-        }
-
-        .player-score {
-            color: #00ff88;
-            font-size: 14px;
-            margin-top: 5px;
-        }
-
-        .empty-lobby {
-            text-align: center;
-            padding: 40px 20px;
-            color: #8f8f8f;
-        }
-
-        .empty-icon {
-            font-size: 50px;
-            margin-bottom: 15px;
-        }
-
-        /* СТАТИСТИКА */
-        .stats-panel {
-            background: #222831;
-            border-radius: 15px;
-            padding: 20px;
-            flex: 1;
-            border: 1px solid #393e46;
-            overflow-y: auto;
-        }
-
-        .stats-content {
-            margin-top: 15px;
-        }
-
-        .stats-item {
-            background: rgba(0, 173, 181, 0.05);
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 10px;
-            border-left: 4px solid #00adb5;
-        }
-
-        .stats-value {
-            font-size: 24px;
-            font-weight: bold;
-            color: #00ff88;
-        }
-
-        .stats-label {
-            color: #8f8f8f;
-            font-size: 14px;
-        }
-
-        .empty-stats {
-            text-align: center;
-            padding: 40px 20px;
-            color: #8f8f8f;
-        }
-
-        .stats-icon {
-            font-size: 50px;
-            margin-bottom: 15px;
-        }
-
-        /* СПИСОК ВОПРОСОВ */
-        .questions-panel {
-            background: #222831;
-            border-radius: 15px;
-            padding: 20px;
-            flex: 1;
-            border: 1px solid #393e46;
-            overflow-y: auto;
-        }
-
-        .questions-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 10px;
-            margin-top: 15px;
-        }
-
-        .question-item {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            padding: 15px;
-            cursor: pointer;
-            transition: all 0.3s;
-            border: 2px solid transparent;
-        }
-
-        .question-item:hover {
-            background: rgba(0, 173, 181, 0.1);
-            transform: translateY(-2px);
-        }
-
-        .question-item.active {
-            border-color: #00ff88;
-            background: rgba(0, 255, 136, 0.1);
-        }
-
-        .question-number {
-            width: 30px;
-            height: 30px;
-            background: #00adb5;
-            color: white;
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 10px;
-            font-weight: bold;
-        }
-
-        .question-type {
-            display: block;
-            font-size: 12px;
-            color: #00ff88;
-            margin-top: 5px;
-        }
-
-        /* РЕЖИМ ПРЕЗЕНТАЦИИ */
-        .presentation-mode {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: #0a0a1a;
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-            animation: fadeIn 0.5s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .presentation-header {
-            background: linear-gradient(90deg, #00adb5, #0077b6);
-            padding: 20px 40px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 3px solid #00ff88;
-        }
-
-        .presentation-label {
-            font-size: 18px;
-            color: white;
-            font-weight: bold;
-        }
-
-        .question-counter {
-            font-size: 20px;
-            color: white;
-            background: rgba(0, 0, 0, 0.3);
-            padding: 10px 20px;
-            border-radius: 10px;
-        }
-
-        .presentation-timer {
-            text-align: center;
-        }
-
-        .timer-label {
-            font-size: 16px;
-            color: rgba(255, 255, 255, 0.8);
-        }
-
-        .big-timer {
-            font-size: 72px;
-            font-weight: bold;
-            font-family: 'Courier New', monospace;
-            color: #00ff88;
-            text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
-            animation: pulse 1s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-
-        .presentation-content {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 40px;
-            overflow: auto;
-        }
-
-        .presentation-question {
-            max-width: 900px;
-            width: 100%;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 40px;
-            border: 3px solid #00adb5;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-        }
-
-        .presentation-question h2 {
-            font-size: 36px;
-            color: white;
-            text-align: center;
-            line-height: 1.4;
-            margin: 0 0 30px 0;
-        }
-
-        .presentation-controls {
-            padding: 20px 40px;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-        }
-
-        .exit-btn {
-            background: linear-gradient(135deg, #ff416c, #ff4b2b);
-            color: white;
-            width: auto;
-            padding: 15px 30px;
-        }
-
-        .answer-btn {
-            background: linear-gradient(135deg, #00ff88, #00b4d8);
-            color: white;
-            width: auto;
-            padding: 15px 30px;
-        }
-
-        /* АДАПТИВНОСТЬ */
-        @media (max-width: 1200px) {
-            .main-content {
-                flex-direction: column;
+    <script>
+        // ============================================
+        // teacher.js - КОРОТКАЯ ВЕРСИЯ (основные функции)
+        // ============================================
+
+        let currentGameId = null;
+        let currentQuestionIndex = 0;
+        let playersListener = null;
+        let gameListener = null;
+        let currentStats = null;
+        let presentationTimerInterval = null;
+        let updateLiveStatsInterval = null;
+
+        // Элементы DOM
+        const startSection = document.getElementById('startSection');
+        const gameControls = document.getElementById('gameControls');
+        const gameCodeDisplay = document.getElementById('gameCode');
+        const playersList = document.getElementById('playersList');
+        const playerCount = document.getElementById('playerCount');
+        const statsContent = document.getElementById('statsContent');
+        const questionsList = document.getElementById('questionsList');
+        const currentQ = document.getElementById('currentQ');
+        const totalQ = document.getElementById('totalQ');
+
+        // Режим презентации
+        const mainInterface = document.getElementById('mainInterface');
+        const presentationMode = document.getElementById('presentationMode');
+        const presentationQNum = document.getElementById('presentationQNum');
+        const presentationTimer = document.getElementById('presentationTimer');
+        const presentationQuestion = document.getElementById('presentationQuestion');
+
+        // ================ ОСНОВНЫЕ ФУНКЦИИ ================
+
+        function startNewGame() {
+            if (!window.db) {
+                alert("Firebase не загружен. Обновите страницу.");
+                return;
             }
             
-            .left-column, .right-column {
-                width: 100%;
+            const code = Math.floor(10000000 + Math.random() * 90000000).toString();
+            currentGameId = "game_" + code;
+            currentQuestionIndex = 0;
+            
+            // Обновить UI
+            startSection.style.display = 'none';
+            gameControls.style.display = 'block';
+            gameCodeDisplay.textContent = code;
+            currentQ.textContent = '0';
+            totalQ.textContent = window.QUIZ_DATA ? window.QUIZ_DATA.questions.length : 30;
+            
+            // Создать игру в Firebase
+            const gameData = {
+                id: currentGameId,
+                created: Date.now(),
+                status: "lobby",
+                quizId: "oge_2025",
+                currentQuestion: null,
+                players: {},
+                answers: {},
+                settings: { timer: 25 }
+            };
+            
+            db.ref('games/' + currentGameId).set(gameData).then(() => {
+                showNotification("🎮 Игра создана! Код: " + code);
+                
+                // Начать слушать игроков
+                listenToPlayers();
+                
+                // Обновить список вопросов
+                updateQuestionsList();
+                
+            }).catch(error => {
+                alert("Ошибка создания игры: " + error.message);
+            });
+        }
+
+        function startNextQuestion() {
+            if (!currentGameId) {
+                alert("Сначала создайте игру!");
+                return;
             }
             
-            .presentation-question h2 {
-                font-size: 28px;
+            const questions = window.QUIZ_DATA ? window.QUIZ_DATA.questions : [];
+            const question = questions[currentQuestionIndex];
+            if (!question) {
+                alert("🎉 Все вопросы пройдены!");
+                return;
             }
             
-            .big-timer {
-                font-size: 48px;
+            // Очистить старые ответы
+            db.ref(`games/${currentGameId}/answers/${question.id}`).remove();
+            
+            // Обновить статус игры
+            db.ref('games/' + currentGameId).update({
+                status: "question_active",
+                currentQuestion: question.id,
+                questionStartTime: Date.now()
+            }).then(() => {
+                // Переключить в режим презентации
+                enterPresentationMode(question);
+                
+                // Запустить таймер на 25 секунд
+                startPresentationTimer(25);
+                
+                // Обновить счетчик
+                currentQuestionIndex++;
+                currentQ.textContent = currentQuestionIndex;
+                
+                // Обновить список вопросов
+                updateQuestionsList();
+                
+            }).catch(error => {
+                alert("Ошибка: " + error.message);
+            });
+        }
+
+        function enterPresentationMode(question) {
+            // Скрыть основной интерфейс
+            mainInterface.style.display = 'none';
+            presentationMode.style.display = 'flex';
+            
+            // Показать вопрос
+            presentationQNum.textContent = currentQuestionIndex;
+            
+            let questionHTML = `<h2>${question.text}</h2>`;
+            
+            // Если вопрос длинный
+            if (question.text.length > 200) {
+                questionHTML = `<div style="max-height: 300px; overflow-y: auto; padding-right: 10px;">
+                    <h2>${question.text}</h2>
+                </div>`;
+            }
+            
+            presentationQuestion.innerHTML = questionHTML;
+            
+            // Начать слушать ответы
+            listenToQuestionAnswers(question.id);
+        }
+
+        function exitPresentation() {
+            // Вернуться к основному интерфейсу
+            mainInterface.style.display = 'flex';
+            presentationMode.style.display = 'none';
+            
+            // Остановить таймер
+            if (presentationTimerInterval) {
+                clearInterval(presentationTimerInterval);
+                presentationTimerInterval = null;
+            }
+            
+            // Остановить обновление статистики
+            if (updateLiveStatsInterval) {
+                clearInterval(updateLiveStatsInterval);
+                updateLiveStatsInterval = null;
+            }
+            
+            // Обновить статус игры
+            if (currentGameId) {
+                db.ref('games/' + currentGameId).update({
+                    status: "lobby"
+                });
             }
         }
 
-        @media (max-width: 768px) {
-            .teacher-header {
-                flex-direction: column;
-                text-align: center;
-                gap: 15px;
-            }
+        function toggleCompactMode() {
+            const questionElement = document.getElementById('presentationQuestion');
+            const btn = document.getElementById('compactBtn');
             
-            .control-buttons {
-                grid-template-columns: 1fr;
-            }
-            
-            .players-list,
-            .questions-list {
-                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-            }
-            
-            .presentation-question h2 {
-                font-size: 24px;
+            if (questionElement.classList.contains('compact')) {
+                questionElement.classList.remove('compact');
+                btn.innerHTML = '📱 КОМПАКТНО';
+            } else {
+                questionElement.classList.add('compact');
+                btn.innerHTML = '📊 ПОЛНЫЙ ВИД';
             }
         }
-    </style>
+
+        function showAnswer() {
+            const questions = window.QUIZ_DATA ? window.QUIZ_DATA.questions : [];
+            const question = questions[currentQuestionIndex - 1];
+            if (!question) return;
+            
+            // Показать правильный ответ
+            presentationQuestion.innerHTML += `
+                <div style="margin-top: 20px; padding: 20px; background: rgba(0, 255, 136, 0.1); border-radius: 10px; border: 2px solid #00ff88;">
+                    <h3 style="color: #00ff88; margin-top: 0;">✅ ПРАВИЛЬНЫЙ ОТВЕТ:</h3>
+                    <div style="font-size: 22px; color: white; margin: 10px 0; font-weight: bold;">${question.options[question.correct]}</div>
+                    <div style="color: #8f8f8f; font-style: italic; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1);">${question.explanation}</div>
+                </div>
+            `;
+            
+            // Показать статистику
+            if (currentStats) {
+                showQuestionStats(currentStats, question);
+            }
+            
+            // Переключить статус
+            if (currentGameId) {
+                db.ref('games/' + currentGameId).update({
+                    status: "showing_results"
+                });
+            }
+        }
+
+        function showStats() {
+            if (currentQuestionIndex === 0) {
+                alert("Сначала запустите хотя бы один вопрос!");
+                return;
+            }
+            
+            const questions = window.QUIZ_DATA ? window.QUIZ_DATA.questions : [];
+            const question = questions[currentQuestionIndex - 1];
+            if (!question) return;
+            
+            // Получить статистику
+            db.ref(`games/${currentGameId}/answers/${question.id}`).once('value').then(snapshot => {
+                const answers = snapshot.val() || {};
+                const stats = calculateStats(answers, question);
+                showQuestionStats(stats, question);
+            });
+        }
+
+        function endQuestion() {
+            if (currentGameId) {
+                db.ref('games/' + currentGameId).update({
+                    status: "lobby",
+                    currentQuestion: null
+                });
+            }
+            
+            if (presentationMode.style.display !== 'none') {
+                exitPresentation();
+            }
+        }
+
+        function resetGame() {
+            if (confirm("Удалить текущую игру и начать заново?")) {
+                if (currentGameId) {
+                    db.ref('games/' + currentGameId).remove();
+                }
+                
+                // Сбросить всё
+                currentGameId = null;
+                currentQuestionIndex = 0;
+                startSection.style.display = 'block';
+                gameControls.style.display = 'none';
+                gameCodeDisplay.textContent = '----';
+                playersList.innerHTML = '<div class="empty-lobby"><div class="empty-icon">👤</div><p>Игроки появятся здесь после подключения</p></div>';
+                playerCount.textContent = '0';
+                statsContent.innerHTML = '<div class="empty-stats"><div class="stats-icon">📊</div><p>Статистика появится после ответов на вопросы</p></div>';
+                currentQ.textContent = '0';
+                
+                // Отписаться от слушателей
+                if (playersListener) playersListener();
+                if (gameListener) gameListener();
+                
+                showNotification("Игра сброшена");
+            }
+        }
+
+        function forceSync() {
+            if (!currentGameId) {
+                alert("Сначала создайте игру!");
+                return;
+            }
+            
+            const questions = window.QUIZ_DATA ? window.QUIZ_DATA.questions : [];
+            const question = questions[currentQuestionIndex];
+            if (!question) {
+                alert("Нет активного вопроса для синхронизации");
+                return;
+            }
+            
+            // Принудительно обновляем вопрос
+            db.ref('games/' + currentGameId).update({
+                currentQuestion: question.id,
+                status: "question_active"
+            });
+            
+            showNotification("Синхронизация выполнена");
+        }
+
+        // ================ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ================
+
+        function listenToPlayers() {
+            if (!currentGameId || playersListener) return;
+            
+            playersListener = db.ref(`games/${currentGameId}/players`).on('value', snapshot => {
+                const players = snapshot.val() || {};
+                const playerArray = Object.entries(players).map(([name, data]) => ({
+                    name,
+                    ...data
+                }));
+                
+                playerCount.textContent = playerArray.length;
+                updatePlayersList(playerArray);
+            });
+        }
+
+        function updatePlayersList(players) {
+            if (players.length === 0) {
+                playersList.innerHTML = '<div class="empty-lobby"><div class="empty-icon">👤</div><p>Игроки появятся здесь после подключения</p></div>';
+                return;
+            }
+            
+            players.sort((a, b) => (b.score || 0) - (a.score || 0));
+            
+            playersList.innerHTML = players.map((player, index) => `
+                <div class="player-card">
+                    <div class="player-avatar">${player.name.charAt(0).toUpperCase()}</div>
+                    <div class="player-name">${player.name}</div>
+                    <div class="player-score">🎯 ${player.score || 0} очков</div>
+                    <div class="player-device">${player.device || '📱'}</div>
+                </div>
+            `).join('');
+        }
+
+        function listenToQuestionAnswers(questionId) {
+            if (!currentGameId) return;
+            
+            updateLiveStatsInterval = setInterval(() => {
+                db.ref(`games/${currentGameId}/answers/${questionId}`).once('value').then(snapshot => {
+                    const answers = snapshot.val() || {};
+                    const questions = window.QUIZ_DATA ? window.QUIZ_DATA.questions : [];
+                    const question = questions.find(q => q.id == questionId);
+                    
+                    if (question) {
+                        currentStats = calculateStats(answers, question);
+                        updateLiveStats(currentStats);
+                    }
+                });
+            }, 2000);
+        }
+
+        function calculateStats(answers, question) {
+            const stats = {
+                total: Object.keys(answers).length,
+                correct: 0,
+                byOption: question.options.map(() => 0)
+            };
+            
+            Object.values(answers).forEach(answer => {
+                if (answer.answerIndex >= 0 && answer.answerIndex < question.options.length) {
+                    stats.byOption[answer.answerIndex]++;
+                    if (answer.answerIndex === question.correct) {
+                        stats.correct++;
+                    }
+                }
+            });
+            
+            return stats;
+        }
+
+        function updateLiveStats(stats) {
+            if (presentationMode.style.display !== 'none') {
+                let statsHTML = `
+                    <div style="display: flex; justify-content: space-around; text-align: center; margin-bottom: 10px;">
+                        <div>
+                            <div style="font-size: 18px; color: #00ff88; font-weight: bold;">${stats.total}</div>
+                            <div style="color: rgba(255,255,255,0.8); font-size: 11px;">ответов</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 18px; color: #00ff88; font-weight: bold;">${stats.correct}</div>
+                            <div style="color: rgba(255,255,255,0.8); font-size: 11px;">правильно</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 18px; color: #00ff88; font-weight: bold;">${stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0}%</div>
+                            <div style="color: rgba(255,255,255,0.8); font-size: 11px;">успешность</div>
+                        </div>
+                    </div>
+                `;
+                
+                // Компактное отображение распределения
+                if (stats.total > 0) {
+                    const questions = window.QUIZ_DATA ? window.QUIZ_DATA.questions : [];
+                    const question = questions.find(q => q.id == currentStats?.questionId);
+                    
+                    if (question && question.options) {
+                        statsHTML += `<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1);">
+                            <div style="color: #00adb5; font-weight: bold; font-size: 12px; margin-bottom: 5px;">Распределение ответов:</div>
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px;">`;
+                        
+                        question.options.forEach((option, index) => {
+                            const count = stats.byOption[index] || 0;
+                            const percentage = stats.total > 0 ? Math.round((count / stats.total) * 100) : 0;
+                            const isCorrect = index === question.correct;
+                            
+                            statsHTML += `
+                                <div style="padding: 3px;">
+                                    <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                                        <span style="color: ${isCorrect ? '#00ff88' : 'white'}">
+                                            ${String.fromCharCode(65 + index)}: ${percentage}%
+                                        </span>
+                                        <span style="color: #8f8f8f">${count}</span>
+                                    </div>
+                                    <div style="height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden;">
+                                        <div style="height: 100%; width: ${percentage}%; background: ${isCorrect ? '#00ff88' : '#ff416c'};"></div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        
+                        statsHTML += `</div></div>`;
+                    }
+                }
+                
+                let statsElement = document.getElementById('liveStats');
+                if (!statsElement) {
+                    presentationQuestion.innerHTML += `<div id="liveStats">${statsHTML}</div>`;
+                } else {
+                    statsElement.innerHTML = statsHTML;
+                }
+            }
+        }
+
+        function showQuestionStats(stats, question) {
+            let statsHTML = `
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px;">
+                    <div class="stats-item">
+                        <div class="stats-value">${stats.total}</div>
+                        <div class="stats-label">Всего ответов</div>
+                    </div>
+                    <div class="stats-item">
+                        <div class="stats-value">${stats.correct}</div>
+                        <div class="stats-label">Правильных</div>
+                    </div>
+                    <div class="stats-item">
+                        <div class="stats-value">${stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0}%</div>
+                        <div class="stats-label">Успешность</div>
+                    </div>
+                </div>
+            `;
+            
+            statsContent.innerHTML = statsHTML;
+        }
+
+        function updateQuestionsList() {
+            const questions = window.QUIZ_DATA ? window.QUIZ_DATA.questions : [];
+            questionsList.innerHTML = questions.map((q, index) => {
+                const isCurrent = index === currentQuestionIndex - 1;
+                const isUpcoming = index === currentQuestionIndex;
+                const isCompleted = index < currentQuestionIndex - 1;
+                
+                let statusClass = '';
+                if (isCurrent) statusClass = 'active';
+                else if (isUpcoming) statusClass = 'upcoming';
+                else if (isCompleted) statusClass = 'completed';
+                
+                return `
+                    <div class="question-item ${statusClass}" onclick="selectQuestion(${index})">
+                        <div class="question-number">${index + 1}</div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: ${isCurrent ? 'bold' : 'normal'}; color: white; font-size: 13px;">Вопрос ${index + 1}</div>
+                            <div class="question-type">${getTypeLabel(q.type)}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function selectQuestion(index) {
+            const questions = window.QUIZ_DATA ? window.QUIZ_DATA.questions : [];
+            if (index < 0 || index >= questions.length) return;
+            
+            const question = questions[index];
+            if (!question) return;
+            
+            // Переключиться на выбранный вопрос
+            currentQuestionIndex = index;
+            
+            // Запустить вопрос
+            startNextQuestion();
+        }
+
+        function getTypeLabel(type) {
+            const labels = {
+                oral: "🎤 Устное",
+                syntax: "📝 Синтаксис",
+                punctuation: "🔤 Пунктуация",
+                spelling: "✍️ Орфография",
+                reading: "📖 Текст"
+            };
+            return labels[type] || type;
+        }
+
+        function startPresentationTimer(seconds) {
+            let timeLeft = seconds;
+            presentationTimer.textContent = timeLeft;
+            presentationTimer.style.color = '#00ff88';
+            
+            if (presentationTimerInterval) {
+                clearInterval(presentationTimerInterval);
+            }
+            
+            presentationTimerInterval = setInterval(() => {
+                timeLeft--;
+                presentationTimer.textContent = timeLeft;
+                
+                if (timeLeft <= 5) {
+                    presentationTimer.style.color = '#ff416c';
+                } else if (timeLeft <= 10) {
+                    presentationTimer.style.color = '#ff9e00';
+                }
+                
+                if (timeLeft <= 0) {
+                    clearInterval(presentationTimerInterval);
+                    setTimeout(() => {
+                        if (presentationMode.style.display !== 'none') {
+                            showAnswer();
+                        }
+                    }, 2000);
+                }
+            }, 1000);
+        }
+
+        function copyGameCode() {
+            if (!currentGameId) {
+                alert("Сначала создайте игру!");
+                return;
+            }
+            
+            const code = currentGameId.replace('game_', '');
+            navigator.clipboard.writeText(code).then(() => {
+                showNotification("📋 Код скопирован!");
+            });
+        }
+
+        function showNotification(message) {
+            // Удаляем старые уведомления
+            const oldNotifications = document.querySelectorAll('.notification');
+            oldNotifications.forEach(n => n.remove());
+            
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        document.body.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("✅ Teacher panel loaded");
+            
+            if (!window.QUIZ_DATA) {
+                console.error("❌ QUIZ_DATA не загружен!");
+                alert("Ошибка загрузки вопросов. Обновите страницу.");
+                return;
+            }
+            
+            console.log(`📚 Загружено вопросов: ${window.QUIZ_DATA.questions.length}`);
+            updateQuestionsList();
+            
+            if (!window.db) {
+                console.error("❌ Firebase не загружен!");
+                alert("Ошибка загрузки базы данных. Обновите страницу.");
+            }
+        });
+    </script>
 </body>
 </html>
