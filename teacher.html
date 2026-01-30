@@ -213,23 +213,6 @@
             font-size: 0.95rem;
         }
         
-        .info-item {
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .info-label {
-            color: var(--gray);
-            font-size: 0.9rem;
-        }
-        
-        .info-value {
-            color: white;
-            font-weight: bold;
-            font-size: 1.2rem;
-            margin-top: 5px;
-        }
-        
         /* СПИСОК ИГРОКОВ */
         .players-list {
             display: grid;
@@ -245,7 +228,6 @@
             padding: 20px;
             text-align: center;
             transition: all 0.3s ease;
-            position: relative;
         }
         
         .player-avatar {
@@ -260,17 +242,6 @@
             font-size: 1.3rem;
             font-weight: bold;
             color: white;
-        }
-        
-        .player-name {
-            font-weight: bold;
-            margin-bottom: 8px;
-            color: white;
-        }
-        
-        .player-score {
-            color: var(--accent);
-            font-size: 0.9rem;
         }
         
         /* СТАТИСТИКА */
@@ -288,63 +259,12 @@
             text-align: center;
         }
         
-        .stat-value {
-            font-size: 2rem;
-            font-weight: bold;
-            color: var(--accent);
-            margin-bottom: 5px;
-        }
-        
-        .stat-label {
-            color: var(--gray);
-            font-size: 0.9rem;
-        }
-        
         /* ВОПРОСЫ */
         .questions-list {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
             gap: 12px;
             margin-top: 15px;
-        }
-        
-        .question-item {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            padding: 15px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border: 2px solid transparent;
-            text-align: center;
-        }
-        
-        .question-item:hover {
-            background: rgba(0, 173, 181, 0.1);
-        }
-        
-        .question-item.active {
-            border-color: var(--warning);
-            background: rgba(255, 158, 0, 0.1);
-        }
-        
-        .question-item.completed {
-            border-color: var(--success);
-            background: rgba(0, 255, 136, 0.1);
-        }
-        
-        .question-number {
-            font-weight: bold;
-            color: var(--accent);
-            font-size: 1.1rem;
-            background: var(--accent);
-            color: white;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 10px;
         }
         
         /* РЕЖИМ ПРЕЗЕНТАЦИИ - ПОЛНОСТЬЮ ОТДЕЛЬНЫЙ ЭКРАН */
@@ -382,7 +302,6 @@
         .presentation-content {
             flex: 1;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
             padding: 40px;
@@ -406,109 +325,6 @@
             justify-content: center;
             gap: 20px;
             align-items: center;
-        }
-        
-        /* СЧЕТЧИК ОТВЕТОВ В ПРЕЗЕНТАЦИИ */
-        .answers-counter {
-            margin-top: 30px;
-            text-align: center;
-            opacity: 1;
-            transition: opacity 0.5s ease;
-        }
-        
-        .answers-counter.visible {
-            opacity: 1;
-        }
-        
-        .counter-container {
-            display: inline-flex;
-            align-items: center;
-            background: rgba(67, 97, 238, 0.2);
-            border-radius: 20px;
-            padding: 15px 30px;
-            border: 2px solid var(--primary);
-            box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
-        }
-        
-        .counter-numbers {
-            font-size: 2.5rem;
-            font-weight: bold;
-            background: linear-gradient(45deg, var(--accent), var(--primary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin: 0 15px;
-            min-width: 120px;
-            text-align: center;
-        }
-        
-        .counter-label {
-            font-size: 1.1rem;
-            color: var(--gray);
-            margin-top: 5px;
-        }
-        
-        .counter-progress {
-            height: 10px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 5px;
-            margin-top: 10px;
-            overflow: hidden;
-            max-width: 300px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        
-        .counter-progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--primary), var(--accent));
-            border-radius: 5px;
-            width: 0%;
-            transition: width 0.5s ease;
-        }
-        
-        /* РЕЗУЛЬТАТЫ ВОПРОСА */
-        .results-container {
-            margin-top: 30px;
-            padding: 25px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 15px;
-            border: 2px solid var(--accent);
-            display: none;
-        }
-        
-        .results-container.visible {
-            display: block;
-            animation: fadeIn 0.5s ease;
-        }
-        
-        /* КНОПКА КИКА ИГРОКА */
-        .kick-player-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(255, 65, 108, 0.2);
-            border: 1px solid var(--danger);
-            color: var(--danger);
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            cursor: pointer;
-            opacity: 0;
-            transition: all 0.3s;
-        }
-        
-        .player-card:hover .kick-player-btn {
-            opacity: 1;
-        }
-        
-        .kick-player-btn:hover {
-            background: var(--danger);
-            color: white;
         }
         
         /* АДАПТИВНОСТЬ */
@@ -539,6 +355,10 @@
                 margin: 0 15px;
             }
             
+            .presentation-question h2 {
+                font-size: 1.5rem;
+            }
+            
             .presentation-controls {
                 flex-direction: column;
                 padding: 15px;
@@ -546,14 +366,6 @@
             
             .presentation-controls .btn {
                 width: 100%;
-            }
-            
-            .counter-numbers {
-                font-size: 2rem;
-            }
-            
-            .kick-player-btn {
-                opacity: 1;
             }
         }
         
@@ -568,29 +380,6 @@
             font-size: 60px;
             margin-bottom: 15px;
             opacity: 0.5;
-        }
-        
-        /* УВЕДОМЛЕНИЯ */
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: linear-gradient(45deg, var(--accent), var(--primary));
-            color: white;
-            padding: 15px 25px;
-            border-radius: 12px;
-            font-weight: 600;
-            z-index: 10000;
-            animation: slideInRight 0.3s ease;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        @keyframes slideInRight {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
         }
         
         /* СКРОЛЛБАР */
@@ -623,9 +412,6 @@
                     <div class="code-label">КОД ИГРЫ:</div>
                     <div id="gameCode" class="code-display">----</div>
                 </div>
-                <button onclick="copyGameCode()" class="btn btn-create" style="padding: 12px 20px;">
-                    <i class="fas fa-copy"></i> Копировать код
-                </button>
                 <a href="index.html" class="btn btn-create" style="padding: 12px 20px;">
                     <i class="fas fa-home"></i> Главная
                 </a>
@@ -666,7 +452,7 @@
                         <div class="question-info">
                             <div class="info-item">
                                 <span class="info-label">Текущий вопрос</span>
-                                <span id="currentQ" class="info-value">0</span>/<span id="totalQ">30</span>
+                                <span id="currentQ" class="info-value">0/30</span>
                             </div>
                             <div class="info-item">
                                 <span class="info-label">Игроков онлайн</span>
@@ -719,40 +505,11 @@
                 <span class="presentation-label">РЕЖИМ ПРЕЗЕНТАЦИИ</span>
                 <span class="question-counter">Вопрос <span id="presentationQNum">1</span></span>
             </div>
-            <div style="display: flex; align-items: center; gap: 20px;">
-                <div id="presentationStats" style="font-size: 1.2rem; color: var(--success); font-weight: bold;">
-                    <i class="fas fa-users"></i> <span id="liveAnsweredCount">0</span>/<span id="liveTotalPlayers">0</span> ответили
-                </div>
-            </div>
         </div>
 
         <div class="presentation-content">
             <div id="presentationQuestion" class="presentation-question">
                 <!-- Вопрос появится здесь -->
-            </div>
-            
-            <!-- СЧЕТЧИК ОТВЕТОВ В РЕЖИМЕ ПРЕЗЕНТАЦИИ -->
-            <div id="presentationCounter" class="answers-counter">
-                <div class="counter-container">
-                    <div class="counter-icon">
-                        <i class="fas fa-users" style="font-size: 2rem; color: var(--accent);"></i>
-                    </div>
-                    <div class="counter-numbers">
-                        <span id="answeredCount">0</span>/<span id="totalPlayersCount">0</span>
-                    </div>
-                    <div class="counter-icon">
-                        <i class="fas fa-check-circle" style="font-size: 2rem; color: var(--success);"></i>
-                    </div>
-                </div>
-                <div class="counter-label">Игроков ответило в реальном времени</div>
-                <div class="counter-progress">
-                    <div id="counterProgressFill" class="counter-progress-fill"></div>
-                </div>
-            </div>
-            
-            <!-- РЕЗУЛЬТАТЫ ОТВЕТОВ -->
-            <div id="resultsContainer" class="results-container">
-                <!-- Результаты появятся здесь -->
             </div>
         </div>
 
@@ -760,7 +517,7 @@
             <button onclick="exitPresentation()" class="btn btn-reset">
                 <i class="fas fa-times"></i> ВЕРНУТЬСЯ К УПРАВЛЕНИЮ
             </button>
-            <button onclick="showAnswerInPresentation()" class="btn btn-show">
+            <button onclick="showAnswerPresentation()" class="btn btn-show">
                 <i class="fas fa-check-circle"></i> ПОКАЗАТЬ ОТВЕТ
             </button>
         </div>
@@ -768,7 +525,446 @@
 
     <!-- Firebase config -->
     <script src="firebase-config.js"></script>
-    <!-- Основной JavaScript файл -->
-    <script src="teacher.js"></script>
+
+    <script>
+        // ============================================
+        // teacher.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
+        // ============================================
+
+        let currentGameId = null;
+        let currentQuestionIndex = 0;
+        let playersListener = null;
+        let gameListener = null;
+
+        // Элементы DOM
+        const startSection = document.getElementById('startSection');
+        const gameControls = document.getElementById('gameControls');
+        const gameCodeDisplay = document.getElementById('gameCode');
+        const playersList = document.getElementById('playersList');
+        const playerCount = document.getElementById('playerCount');
+        const statsContent = document.getElementById('statsContent');
+        const questionsList = document.getElementById('questionsList');
+        const currentQ = document.getElementById('currentQ');
+
+        // Режим презентации
+        const mainInterface = document.getElementById('mainInterface');
+        const presentationMode = document.getElementById('presentationMode');
+        const presentationQNum = document.getElementById('presentationQNum');
+        const presentationQuestion = document.getElementById('presentationQuestion');
+
+        // ================ ОСНОВНЫЕ ФУНКЦИИ ================
+
+        function startNewGame() {
+            if (!window.db) {
+                alert("Firebase не загружен. Обновите страницу.");
+                return;
+            }
+            
+            const code = Math.floor(10000000 + Math.random() * 90000000).toString();
+            currentGameId = "game_" + code;
+            currentQuestionIndex = 0;
+            
+            // Обновить UI
+            startSection.style.display = 'none';
+            gameControls.style.display = 'block';
+            gameCodeDisplay.textContent = code;
+            currentQ.textContent = '0/30';
+            
+            // Создать игру в Firebase
+            const gameData = {
+                id: currentGameId,
+                created: Date.now(),
+                status: "lobby",
+                quizId: "oge_2026",
+                currentQuestion: null,
+                players: {},
+                answers: {}
+            };
+            
+            db.ref('games/' + currentGameId).set(gameData).then(() => {
+                showNotification("🎮 Игра создана! Код: " + code);
+                
+                // Начать слушать игроков
+                listenToPlayers();
+                
+                // Обновить список вопросов
+                updateQuestionsList();
+                
+            }).catch(error => {
+                alert("Ошибка создания игры: " + error.message);
+            });
+        }
+
+        function startNextQuestion() {
+            if (!currentGameId) {
+                alert("Сначала создайте игру!");
+                return;
+            }
+            
+            const questions = window.QUIZ_DATA ? window.QUIZ_DATA.questions : [];
+            const question = questions[currentQuestionIndex];
+            if (!question) {
+                alert("🎉 Все вопросы пройдены!");
+                return;
+            }
+            
+            // Очистить старые ответы
+            db.ref(`games/${currentGameId}/answers/${question.id}`).remove();
+            
+            // Обновить статус игры
+            db.ref('games/' + currentGameId).update({
+                status: "question_active",
+                currentQuestion: question.id,
+                questionStartTime: Date.now()
+            }).then(() => {
+                // Переключить в режим презентации
+                enterPresentationMode(question);
+                
+                // Обновить счетчик
+                currentQuestionIndex++;
+                currentQ.textContent = currentQuestionIndex + '/30';
+                
+                // Обновить список вопросов
+                updateQuestionsList();
+                
+            }).catch(error => {
+                alert("Ошибка: " + error.message);
+            });
+        }
+
+        // ФИКС: ПРАВИЛЬНОЕ ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ
+        function enterPresentationMode(question) {
+            // Скрыть основной интерфейс
+            mainInterface.style.display = 'none';
+            
+            // Показать режим презентации
+            presentationMode.classList.add('active');
+            
+            // Показать вопрос
+            presentationQNum.textContent = currentQuestionIndex;
+            
+            let questionHTML = `<h2 style="color: white; text-align: center; line-height: 1.4; margin: 0;">${question.text}</h2>`;
+            
+            // Если вопрос длинный
+            if (question.text.length > 200) {
+                questionHTML = `<div style="max-height: 400px; overflow-y: auto; padding-right: 20px;">
+                    <h2 style="color: white; text-align: center; line-height: 1.4; margin: 0;">${question.text}</h2>
+                </div>`;
+            }
+            
+            presentationQuestion.innerHTML = questionHTML;
+        }
+
+        // ФИКС: ПРАВИЛЬНЫЙ ВЫХОД ИЗ ПРЕЗЕНТАЦИИ
+        function exitPresentation() {
+            // Скрыть режим презентации
+            presentationMode.classList.remove('active');
+            
+            // Показать основной интерфейс
+            mainInterface.style.display = 'flex';
+            
+            // Обновить статус игры
+            if (currentGameId) {
+                db.ref('games/' + currentGameId).update({
+                    status: "lobby"
+                });
+            }
+        }
+
+        function showAnswerPresentation() {
+            const questions = window.QUIZ_DATA ? window.QUIZ_DATA.questions : [];
+            const question = questions[currentQuestionIndex - 1];
+            if (!question) return;
+            
+            // Показать правильный ответ
+            presentationQuestion.innerHTML += `
+                <div style="margin-top: 30px; padding: 25px; background: rgba(0, 255, 136, 0.1); border-radius: 15px; border: 3px solid #00ff88;">
+                    <h3 style="color: #00ff88; margin-top: 0; font-size: 1.5rem;">✅ ПРАВИЛЬНЫЙ ОТВЕТ:</h3>
+                    <div style="font-size: 1.8rem; color: white; margin: 15px 0; font-weight: bold;">${question.options[question.correct]}</div>
+                    <div style="color: #8f8f8f; font-style: italic; padding-top: 15px; border-top: 2px solid rgba(255,255,255,0.1); font-size: 1.1rem;">${question.explanation}</div>
+                </div>
+            `;
+            
+            // Переключить статус
+            if (currentGameId) {
+                db.ref('games/' + currentGameId).update({
+                    status: "showing_results"
+                });
+            }
+            
+            // Получить и показать статистику
+            showStats();
+        }
+
+        function showAnswer() {
+            showAnswerPresentation();
+        }
+
+        function nextQuestion() {
+            exitPresentation();
+        }
+
+        function showStats() {
+            if (currentQuestionIndex === 0) {
+                return;
+            }
+            
+            const questions = window.QUIZ_DATA ? window.QUIZ_DATA.questions : [];
+            const question = questions[currentQuestionIndex - 1];
+            if (!question) return;
+            
+            // Получить статистику
+            db.ref(`games/${currentGameId}/answers/${question.id}`).once('value').then(snapshot => {
+                const answers = snapshot.val() || {};
+                const stats = calculateStats(answers, question);
+                updateStatsDisplay(stats);
+            });
+        }
+
+        function updateStatsDisplay(stats) {
+            const total = stats.total || 0;
+            const correct = stats.correct || 0;
+            const percentage = total > 0 ? Math.round((correct / total) * 100) : 0;
+            
+            // Обновить статистику в режиме презентации
+            if (presentationMode.classList.contains('active')) {
+                presentationQuestion.innerHTML += `
+                    <div style="margin-top: 25px; padding: 20px; background: rgba(67, 97, 238, 0.1); border-radius: 15px; border: 2px solid #4361ee;">
+                        <h3 style="color: #4361ee; margin-top: 0; font-size: 1.3rem;">📊 СТАТИСТИКА ОТВЕТОВ:</h3>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 15px;">
+                            <div style="text-align: center;">
+                                <div style="font-size: 2rem; color: #4cc9f0; font-weight: bold;">${total}</div>
+                                <div style="color: #8f8f8f; font-size: 0.9rem;">Всего ответов</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="font-size: 2rem; color: #00ff88; font-weight: bold;">${correct}</div>
+                                <div style="color: #8f8f8f; font-size: 0.9rem;">Правильных</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="font-size: 2rem; color: #ff9e00; font-weight: bold;">${percentage}%</div>
+                                <div style="color: #8f8f8f; font-size: 0.9rem;">Успешность</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Обновить статистику в основном интерфейсе
+            statsContent.innerHTML = `
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value">${total}</div>
+                        <div class="stat-label">Всего ответов</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">${correct}</div>
+                        <div class="stat-label">Правильных</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">${percentage}%</div>
+                        <div class="stat-label">Успешность</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function calculateStats(answers, question) {
+            const stats = {
+                total: Object.keys(answers).length,
+                correct: 0,
+                byOption: question.options.map(() => 0)
+            };
+            
+            Object.values(answers).forEach(answer => {
+                if (answer.answerIndex >= 0 && answer.answerIndex < question.options.length) {
+                    stats.byOption[answer.answerIndex]++;
+                    if (answer.answerIndex === question.correct) {
+                        stats.correct++;
+                    }
+                }
+            });
+            
+            return stats;
+        }
+
+        function resetGame() {
+            if (confirm("Удалить текущую игру и начать заново?")) {
+                if (currentGameId) {
+                    db.ref('games/' + currentGameId).remove();
+                }
+                
+                // Сбросить всё
+                currentGameId = null;
+                currentQuestionIndex = 0;
+                startSection.style.display = 'block';
+                gameControls.style.display = 'none';
+                gameCodeDisplay.textContent = '----';
+                playersList.innerHTML = '<div class="empty-state"><div class="empty-icon">👤</div><p>Игроки появятся здесь после подключения</p></div>';
+                playerCount.textContent = '0';
+                statsContent.innerHTML = '<div class="empty-state"><div class="empty-icon">📊</div><p>Статистика появится после ответов на вопросы</p></div>';
+                currentQ.textContent = '0/30';
+                
+                // Отписаться от слушателей
+                if (playersListener) playersListener();
+                if (gameListener) gameListener();
+                
+                showNotification("Игра сброшена");
+            }
+        }
+
+        function listenToPlayers() {
+            if (!currentGameId || playersListener) return;
+            
+            playersListener = db.ref(`games/${currentGameId}/players`).on('value', snapshot => {
+                const players = snapshot.val() || {};
+                const playerArray = Object.entries(players).map(([name, data]) => ({
+                    name,
+                    ...data
+                }));
+                
+                playerCount.textContent = playerArray.length;
+                updatePlayersList(playerArray);
+            });
+        }
+
+        function updatePlayersList(players) {
+            if (players.length === 0) {
+                playersList.innerHTML = '<div class="empty-state"><div class="empty-icon">👤</div><p>Игроки появятся здесь после подключения</p></div>';
+                return;
+            }
+            
+            players.sort((a, b) => (b.score || 0) - (a.score || 0));
+            
+            playersList.innerHTML = players.map((player, index) => `
+                <div class="player-card">
+                    <div class="player-avatar">${player.name.charAt(0).toUpperCase()}</div>
+                    <div class="player-name">${player.name}</div>
+                    <div class="player-score">🎯 ${player.score || 0} очков</div>
+                </div>
+            `).join('');
+        }
+
+        function updateQuestionsList() {
+            const questions = window.QUIZ_DATA ? window.QUIZ_DATA.questions : [];
+            questionsList.innerHTML = questions.map((q, index) => {
+                const isCurrent = index === currentQuestionIndex - 1;
+                const isUpcoming = index === currentQuestionIndex;
+                const isCompleted = index < currentQuestionIndex - 1;
+                
+                let statusClass = '';
+                if (isCurrent) statusClass = 'active';
+                else if (isUpcoming) statusClass = '';
+                else if (isCompleted) statusClass = '';
+                
+                return `
+                    <div class="question-item ${statusClass}" onclick="selectQuestion(${index})">
+                        <div class="question-number">${index + 1}</div>
+                        <div style="font-size: 0.9rem; color: ${isCurrent ? '#ff9e00' : '#8f8f8f'}; margin-top: 5px;">
+                            ${isCurrent ? 'Текущий' : isCompleted ? 'Пройден' : 'Предстоящий'}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function selectQuestion(index) {
+            const questions = window.QUIZ_DATA ? window.QUIZ_DATA.questions : [];
+            if (index < 0 || index >= questions.length) return;
+            
+            const question = questions[index];
+            if (!question) return;
+            
+            // Переключиться на выбранный вопрос
+            currentQuestionIndex = index;
+            
+            // Запустить вопрос
+            startNextQuestion();
+        }
+
+        function showNotification(message) {
+            // Удаляем старые уведомления
+            const oldNotifications = document.querySelectorAll('.notification');
+            oldNotifications.forEach(n => n.remove());
+            
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.innerHTML = `<i class="fas fa-info-circle"></i> ${message}`;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideInRight 0.3s ease reverse';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        document.body.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        // Создаем стиль для уведомления
+        const style = document.createElement('style');
+        style.textContent = `
+            .notification {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: linear-gradient(45deg, #4cc9f0, #4361ee);
+                color: white;
+                padding: 15px 25px;
+                border-radius: 12px;
+                font-weight: 600;
+                z-index: 10000;
+                animation: slideInRight 0.3s ease;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            
+            @keyframes slideInRight {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            
+            .question-item {
+                background: rgba(255, 255, 255, 0.05);
+                border-radius: 10px;
+                padding: 15px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                border: 2px solid transparent;
+            }
+            
+            .question-item:hover {
+                background: rgba(0, 173, 181, 0.1);
+            }
+            
+            .question-item.active {
+                border-color: var(--warning);
+                background: rgba(255, 158, 0, 0.1);
+            }
+            
+            .question-number {
+                font-weight: bold;
+                color: var(--accent);
+                font-size: 1.1rem;
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("✅ Teacher panel loaded");
+            
+            if (!window.QUIZ_DATA) {
+                console.error("❌ QUIZ_DATA не загружен!");
+                alert("Ошибка загрузки вопросов. Обновите страницу.");
+                return;
+            }
+            
+            console.log(`📚 Загружено вопросов: ${window.QUIZ_DATA.questions.length}`);
+            updateQuestionsList();
+        });
+    </script>
 </body>
 </html>
